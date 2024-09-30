@@ -243,16 +243,20 @@ https://pandas.pydata.org/docs/user_guide/indexing.html
 import pandas as pd
 
 # Step 1: Getting a data source
-# df = pd.read_csv("life-expectancy.csv")
+# DataFrame is just a table and it has rows and columsn
+# Each item in a column must be the same type
+df = pd.read_csv("life-expectancy.csv")
 
 LIFE_EXPECTANCY_CSV = "life-expectancy.csv"
-def get_life_expectancy_data():
+def get_life_expectancy_data(filename):
     """
     This is called a docstring
 
     TODO: Write documentation
     """
-    raise NotImplementedError
+    df = pd.read_csv(filename)
+    return df
+
 
 """
 Running the code
@@ -260,8 +264,10 @@ Running the code
 It can be useful to have open a Python shell while developing Python code.
 
 There are two ways to run Python code from the command line:
--
--
+- python3 lecture.py
+- python3 -i lecture.py
+
+It starts a new python shell with the previous file as input
 
 Let's try both
 """
@@ -276,20 +282,33 @@ Let's try both
 
 class LifeExpectancyData:
     """
-    TODO: Write documentation
+    Represents statistics of Life Expectancy Data
     """
 
-    def __init__():
+    def __init__(self):
         """
-        TODO: Write documentation
+        Initalize variables
         """
-        raise NotImplementedError
+        self.min = None
+        self.max = None
+        self.avg = None
 
-    def get_load_statistics():
+
+    def get_load_statistics(self):
         """
-        TODO: Write documentation
+        Read in data from DF and store it in our class
         """
-        raise NotImplementedError
+        self.min = df["Year"].min()
+        self.max = df["Year"].max()
+        self.avg = df["Period life expectancy at birth - Sex: all - Age: 0"].mean()
+    
+    def save_to_file(self, filename):
+        """
+        Save information about data to file
+        """
+        out = pd.DataFrame({"Min year": [self.min], "Max year": [self.max], "Average life expectancy": [self.avg]})
+        out.to_csv(filename, index=False)
+
 
 # Tangent:
 # We can do all of the above with df.describe()
@@ -326,16 +345,26 @@ import pytest
 
 # How pytest works:
 # Unskip to run test
-@pytest.mark.skip
+# @pytest.mark.skip
 def test_get_life_expectancy_data():
-    data = get_life_expectancy_data()
+    data = get_life_expectancy_data(LIFE_EXPECTANCY_CSV)
     countries = data["Entity"].unique()
     assert len(countries) == 261
 
+test_get_life_expectancy_data() 
+
 # - Software reuse
 
+# 261 countries, which could be kind of political later on!
 # Exercise 3:
 # Reuse the class to get input in a different way: from the user
+
+""""
+- Data processing pipelines as software
+- Software design best practicers (modularity and reuse)
+- A little bit about data validation (validating assumptions about data)
+
+"""
 
 # - Collaborative development
 # Why is the above code better for collaborative development?
