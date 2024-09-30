@@ -79,10 +79,10 @@ biggest_cities.txt.
 What are the components of a data processing pipeline?
 What do these scenarios have in common?
 
-0.
-1.
-2.
-3.
+0. Description of task
+1. Input source
+2. Processing stage
+3. Output
 """
 
 """
