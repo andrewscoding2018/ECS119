@@ -176,6 +176,24 @@ Why is this useful?
 
 (See README.md for announcements and plan.)
 
+=== Following along ===
+
+Reminder to follow along:
+https://github.com/DavisPL-Teaching/119
+
+(I will go through the steps again in class)
+
+Navigate to the directory you want:
+- ls to show directories
+- cd <directory> to move into the directory
+
+If you already cloned the repo, then this time, you need to get any code updates.
+Do the following:
+
+- git status
+- git stash
+- git pull
+
 === A tangent on pacing ===
 
 - The pacing might be a bit slow right now for some of you -- especially if you have prior experience
@@ -191,20 +209,6 @@ Why is this useful?
 - There will be a mid-quarter survey (around 4 weeks in) to see if we are going too slow or too fast
   and I will adjust things accordingly!
 
-=== Following along ===
-
-Reminder to follow along:
-https://github.com/DavisPL-Teaching/119
-
-(I will go through the steps again in class)
-
-If you already cloned the repo, then this time, you need to get any code updates.
-Do the following:
-
-- git status
-- git stash
-- git pull
-
 === Poll ===
 
 1. Which stage do you think is likely to be the most computationally intensive part of a data processing pipeline?
@@ -217,7 +221,7 @@ https://tinyurl.com/3tthzry7
 === Data processing pipelines as software ===
 
 Some of you may know about tools like Jupyter notebooks, Google Colab, or Excel.
-(What is the most widely used data processing tool? Answer: ____)
+(What is the most widely used data processing tool? Answer: Excel)
 
 So why aren't we using those tools? :)
 
@@ -243,16 +247,21 @@ https://pandas.pydata.org/docs/user_guide/indexing.html
 import pandas as pd
 
 # Step 1: Getting a data source
+# creating a DataFrame
+# DataFrame is just a table: it has rows and columns, and importantly,
+# each column has a type (all items in the column must share the same
+# type, e.g., string, number, etc.)
 # df = pd.read_csv("life-expectancy.csv")
 
-LIFE_EXPECTANCY_CSV = "life-expectancy.csv"
-def get_life_expectancy_data():
+def get_life_expectancy_data(filename):
     """
     This is called a docstring
 
-    TODO: Write documentation
+    Take in CSV data from life-expectancy.csv
+    Return a DataFrame of the data.
     """
-    raise NotImplementedError
+    df = pd.read_csv(filename)
+    return df
 
 """
 Running the code
@@ -260,8 +269,8 @@ Running the code
 It can be useful to have open a Python shell while developing Python code.
 
 There are two ways to run Python code from the command line:
--
--
+- python3 lecture.py
+- python3 -i lecture.py
 
 Let's try both
 """
@@ -276,19 +285,37 @@ Let's try both
 
 class LifeExpectancyData:
     """
-    TODO: Write documentation
+    Our data will include:
+    - maximum year
+    - minimum year
+    - average of all the life expectancies
     """
 
-    def __init__():
+    def __init__(self):
         """
-        TODO: Write documentation
-        """
-        raise NotImplementedError
+        Initialize fields
 
-    def get_load_statistics():
+        self keyword: refers to the object itself
         """
-        TODO: Write documentation
+        self.min = None
+        self.max = None
+        self.avg = None
+
+    def load_statistics(self, df):
         """
+        Read in data from the DataFrame
+        and store it in our clas
+        """
+        self.min = df["Year"].min()
+        self.max = df["Year"].max()
+        self.avg = df["Period life expectancy at birth - Sex: all - Age: 0"].mean()
+
+    def save_to_file(self, filename):
+        out = pd.DataFrame({"Min year": [self.min], "Max year": [self.max], "Average life expectancy": [self.avg]})
+        out.to_csv(filename, index=False)
+
+    def get_from_user(self):
+        # Instead of loading from a file, get the data via user input.
         raise NotImplementedError
 
 # Tangent:
@@ -297,12 +324,7 @@ class LifeExpectancyData:
 # Step 3: save the output
 # out = pd.DataFrame({"Min year": [min_year], "Max year": [max_year], "Average life expectancy": [avg]})
 # out.to_csv("output.csv", index=False)
-
-def save_to_csv():
-    """
-    TODO: Write documentation
-    """
-    raise NotImplementedError
+# Do this above
 
 """
 Let's revisit our criteria from before. How does this help?
@@ -312,7 +334,6 @@ Let's revisit our criteria from before. How does this help?
 
 # Exercise 1: Revise the class above so that the input is taken from an argument, instead of
 # provided as a hardcoded filename
-# TODO
 
 # - Software testing
 
@@ -325,29 +346,79 @@ Let's revisit our criteria from before. How does this help?
 import pytest
 
 # How pytest works:
-# Unskip to run test
-@pytest.mark.skip
+# Any function with the prefix test_ is considered
+# a test.
+# We can run all tests with pytest lecture.py
+# We can use @pytest.mark.skip decorator to skip
+# tests -- nskip to run test
+# @pytest.mark.skip
 def test_get_life_expectancy_data():
-    data = get_life_expectancy_data()
+    data = get_life_expectancy_data("life-expectancy.csv")
     countries = data["Entity"].unique()
     assert len(countries) == 261
+
+# 261 countries!
+# (This is a property of our dataset -- which countries
+# get included or not is a geopolitical and ethical question)
 
 # - Software reuse
 
 # Exercise 3:
 # Reuse the class to get input in a different way: from the user
+# TODO try this exercise.
+
+"""
+Recap of what we covered today:
+
+- Data processing pipelines as software
+
+- Software design best practices, modularity, and reuse
+
+- A little bit about data validation -- i.e. determining whether
+  whatever assumptions we have about the data may actually be
+  correct.
+
+===============================================================
+
+=== Wednesday, Oct 2 ===
+
+=== Poll ===
+
+Which of the following is a good reason to structure data processing software using well-abstracted modules, functions, and classes? (select all that apply)
+
+https://forms.gle/q33kY95XQjUNGk8A6
+https://tinyurl.com/4x7pvkr6
+"""
+
+# (Finishing up)
+# Reasons to think of data processing pipelines as software:
 
 # - Collaborative development
-# Why is the above code better for collaborative development?
+# Why is the above code design better for collaborative development?
 
 # - Performance optimization
 #   (More on this shortly)
 
-"""
-=== Design constraints ===
+# - In general: anticipating things that could go wrong
+#   (this point is a good transition to the next section)
 
-Recall that we talkd on the first lecture about software components + design constraints.
-Let's talk more about the design constraints bit.
+"""
+=== Main function ===
+
+Last time, we used python3 -i lecture.py to run
+the code interactively.
+Let's look at another common way to test out our Python code
+by putting a basic pipeline into a main function at the
+bottom of the file.
+"""
+
+"""
+=== Failures and risks ===
+
+Recall that we talked on the first lecture about software components + design constraints.
+More specifically, we are most worried about failures and risks
+which might invalidate our pipeline (wrong results)
+or cause it to misbehave (crash or worse).
 
 What could go wrong in our toy pipeline above?
 Let's go through each stage at a time:
@@ -356,18 +427,10 @@ Let's go through each stage at a time:
 
 What could go wrong here?
 
-
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-
+- Malformed data and type mismatches
+- Wrong data
+- Missing data
+- Private data
 """
 
 """
@@ -389,6 +452,19 @@ Problem: input data could be wrong
 # Solutions?
 
 """
+Discussion questions:
+- If we download multiple versions of this data
+  from different sources (for example, from Wikipedia, from GitHub,
+  etc.) are they likely to have the same countries? Why or why not?
+
+- What can be done to help validate our data has the right set
+  of countries?
+
+- How might choosing a different set of countries affect the
+  app we are using?
+"""
+
+"""
 Problem: input data could be missing
 """
 
@@ -404,11 +480,14 @@ Problem: input data could be private
 
 # Solutions?
 
-
 """
 2. Processing stage
 
 What could go wrong here?
+
+- Software bugs
+- Performance bugs
+- Nondeterminism
 """
 
 """
@@ -428,7 +507,7 @@ Problem: performance bugs
 # Solutions?
 
 """
-Problem: order-depenent and non-deterministic behavior
+Problem: order-dependent and non-deterministic behavior
 """
 
 # Exercise 11: Introduce order-dependent behavior into the pipeline
@@ -441,6 +520,11 @@ Problem: order-depenent and non-deterministic behavior
 3. Output stage
 
 What could go wrong here?
+
+- System errors and exceptions
+- Output formatting
+- Readability
+- Usability
 """
 
 """
@@ -487,9 +571,8 @@ Problem: readability and usability concerns --
 
 """
 In the second stage, we said that one thing that could
-
-One aspect of particular interest to us in this class is the performance in the second
-stage. How do we measure performance?
+go wrong was performance bugs.
+How do we measure performance?
 
 === Performance ===
 
@@ -557,3 +640,6 @@ intuitive and direct way possible.
 The tools we see in this class will help us achieve the right abstractions to achieve this simplicity.
 
 """
+
+if __name__ == "__main__":
+    raise NotImplementedError

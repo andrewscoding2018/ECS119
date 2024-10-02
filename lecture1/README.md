@@ -48,3 +48,31 @@ Plan for today:
 - Measuring performance
 
 Next up is Lecture 2: software engineering and software development tools.
+
+## Wednesday, October 2
+
+Announcements:
+
+- HW0 due today (11:59pm)
+
+- We are still working on resolving some installation issues.
+
+  + some issues on Windows were due to winutils + Java version
+  + ensure that Java is installed and try downgrading to Java 11
+  + Please come to OH today 5-6pm if this applies to you!
+
+  Notes:
+  + This won't affect your HW0 score.
+  + We won't need Spark until the 2nd or 3rd homework, so
+    if everything else is working, you should be OK for the time
+    being.
+
+Plan for today:
+
+- Failures and risks
+
+  + Issues with input data
+  + Software bugs, performance, and defects
+  + Output failures and usability
+
+- Measuring performance
