@@ -273,11 +273,11 @@ Let's try both
 """
 
 # Step 2: Do some processing
-# min_year = df["Year"].min()
-# max_year = df["Year"].max()
+min_year = df["Year"].min()
+max_year = df["Year"].max()
 # print("Minimum year: ", min_year)
 # print("Maximum year: ", max_year)
-# avg = df["Period life expectancy at birth - Sex: all - Age: 0"].mean()
+avg = df["Period life expectancy at birth - Sex: all - Age: 0"].mean()
 # print("Average life expectancy: ", avg)
 
 class LifeExpectancyData:
@@ -314,8 +314,8 @@ class LifeExpectancyData:
 # We can do all of the above with df.describe()
 
 # Step 3: save the output
-# out = pd.DataFrame({"Min year": [min_year], "Max year": [max_year], "Average life expectancy": [avg]})
-# out.to_csv("output.csv", index=False)
+out = pd.DataFrame({"Min year": [min_year], "Max year": [max_year], "Average life expectancy": [avg]})
+out.to_csv("output.csv", index=False)
 
 def save_to_csv():
     """
@@ -351,7 +351,7 @@ def test_get_life_expectancy_data():
     countries = data["Entity"].unique()
     assert len(countries) == 261
 
-test_get_life_expectancy_data() 
+# test_get_life_expectancy_data() 
 
 # - Software reuse
 
@@ -467,6 +467,13 @@ Problem: order-depenent and non-deterministic behavior
 # Solutions?
 
 """
+Recap from today:
+- Python main functions (python3 lecture.py, python3 -i lecture.py, pytest lecture.py)
+- What can go wrong in a pipeline
+- input dat aissues & validation
+"""
+
+"""
 3. Output stage
 
 What could go wrong here?
@@ -549,6 +556,10 @@ def measure_latency():
 
 def measure_memory_usage():
     raise NotImplementedError
+
+if __name__ == "__main__":
+    data = get_life_expectancy_data(LIFE_EXPECTANCY_CSV)
+    stats_summary = LifeExpectancyData()
 
 """
 === Overview of the rest of the course ===
