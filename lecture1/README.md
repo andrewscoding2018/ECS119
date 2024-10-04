@@ -67,6 +67,8 @@ Announcements:
     if everything else is working, you should be OK for the time
     being.
 
+- CS minors: DOES count as a upper-div req for CS minor
+
 Plan for today:
 
 - Failures and risks
@@ -76,3 +78,24 @@ Plan for today:
   + Output failures and usability
 
 - Measuring performance
+
+## Friday, Oct 4
+
+Announcements:
+
+- Installation: if you are still having trouble on Windows, please try the following options:
+  https://piazza.com/class/m12ef423uj5p5/post/25
+
+  Options that we found work:
+
+  Option 1: Install everything through pip
+  Option 2: Windows Subsystem for Linux (WSL)
+  Option 3: GitHub Codespaces
+
+- My OH 4-5pm
+
+Plan for today:
+
+- Start with poll
+
+- Finish lecture 1.
