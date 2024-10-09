@@ -37,11 +37,11 @@ https://tinyurl.com/mesbhpdk
 
 Finishing some definitions:
 
-- Throughput = ...
+- Throughput = amount of data processed per second or number of input items
 
 - Often calculated as:
 
-- Latency = ...
+- Latency = amount of time to process one data item.
 
 - Often calculated as:
 

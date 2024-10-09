@@ -115,7 +115,7 @@ Examples we have seen:
 
 - pytest <code>.py: run unit tests
 
-- conda install <module>: install new software with Conda
+- condaj install <module>: install new software with Conda
 
 - pip3 install <module>: install new Python libraries with Pip
 
@@ -150,8 +150,8 @@ import subprocess
 def ls_2():
     subprocess.run(["ls", "-alh"])
 
-# ls_1()
-# ls_2()
+ls_1()
+ls_2()
 
 # In addition to ., there is another special output: ..
 
