@@ -28,6 +28,11 @@ return to data processing in Pandas starting from Lecture 3
 parallel/distributed data processing as soon as possible but likely
 not until halfway through the quarter.
 
+### Following along
+
+`git status`, `git stash`, and then `git pull`
+`cd lecture2` -- the same `python3 -i lecture.py`
+
 ### Poll
 
 What are the units of throughput?
@@ -37,13 +42,10 @@ https://tinyurl.com/mesbhpdk
 
 Finishing some definitions:
 
-- Throughput = ...
+- Throughput = Amount of data (or number of input items)
+  processed per unit time
 
-- Often calculated as:
-
-- Latency = ...
-
-- Often calculated as:
+- Latency = Amount of time to process a single data item
 
 For a cleaned up example, see lecture1/throughput_latency.py.
 
@@ -57,5 +59,31 @@ For now: the fundamental performance characteristics of ANY data processing
 pipeline can be summarized by throughput and latency.
 
 ## Oct 9 (Wednesday)
+
+Announcements:
+
+- Add deadline is tomorrow (Oct 10) (Drop deadline: Oct 22)
+
+- Midterm currently scheduled in-class for Nov 1
+
+Plan:
+
+- Start with the poll
+
+- Shell: looking around, navigating, getting help, command arguments, I/O
+
+- Dangers of the shell
+
+- Recap & Q+A
+
+- (Next time) Git & GitHub basics
+
+### Poll
+
+Continuing from last time's poll:
+Which of the following are valid units of latency?
+
+https://forms.gle/asAcaEewqAvk4PvB8
+https://tinyurl.com/2668rc6c
 
 ## Oct 11 (Friday)
