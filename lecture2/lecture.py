@@ -12,7 +12,7 @@ including:
 
 - git basics: status, add, push, commit, pull, rebase, branch
 
-- pattern matching: grep, find, awk, sed
+- searching / pattern matching: find, grep, awk, sed
 
 Background:
 I will assume no background on the shell other than the
@@ -97,6 +97,7 @@ Or even more simply:
 # python3 lecture.py
 print("Welcome to ECS Lecture 2.")
 
+# python3 -i lecture.py
 # Quitting: Ctrl-C, Ctrl-D
 
 """
@@ -133,18 +134,40 @@ Let's try running a couple of these to remind ourselves how these work.
 # Try:
 # python3, ls, pytest, conda
 
+# ls: doesn't show hidden folders and files
+# On Mac: anything starting with a . is hidden
+
+# To show hidden + other metadata
+# ls -alh
+# ^^^^^^^ TL;DR use this to show all the stuff in a folder
+
 """
 Can we do this in Python?
 
 Sure!
 """
 
+# os is the operating system library
+# i.e.: how Python interacts with the operating system
 import os
 
 def ls_1():
+    # Listdir: input a folder, show me all the files
+    # and folders inside it
     # The . refers to the current directory
+    # Also includes hidden files/folders.
     print(os.listdir("."))
 
+ls_1()
+
+# What's the . folder?
+# That stands for the current, or working directory
+# for the program
+
+# In python it's often useful to call into another
+# command -- you can think of this as basically calling into the shell from Python.
+
+# Library for running other commands
 import subprocess
 
 def ls_2():
@@ -152,24 +175,60 @@ def ls_2():
 
 ls_1()
 ls_2()
+# ^^^^ same output as if I ran the command line directly
 
-# In addition to ., there is another special output: ..
+# In addition to ., there is another special folder: ..
 
 """
 Common theme:
 Everything we can do in the shell, we can also do in Python directly.
+But, sometimes in Python we just directly call into
+commands, and knowing shell syntax is important as it
+gives a very powerful way for Python programs to interact
+with the outside world.
 
-=== Getting started: informational commands ===
+=== Recap ===
 
-The most important thing you need to know when opening a shell is
+What we have learned:
+1. The shell is a very powerful "glue code" system that is
+   how all programs interact on your operating system
+2. Knowing the shell is useful for example for configuration,
+   input, output, running commands in other languages,
+   running and configuring other tools, etc.
+   (Basically: if you can't find a library for it, may
+    have to resort to using the shell)
+3. It's also the main way that we interact with programs
+  and run/test/debug our code.
+4. We saw how to run basic commands like ls and ls -alh,
+   special folders and hidden folders, and what that
+   means.
+
+=== Oct 9 ===
+
+We saw how to run basic commands in the shell and what it means.
+Today: a tour of the shell (looking around, navigating, help, I/O, etc.)
+
+=== Informational commands: looking around ===
+
+An analgoy:
+There used to be a whole genre of text-based adventure games.
+the shell is kind of like this.
+
+e.g.
+- Zork (1977):
+  https://textadventures.co.uk/games/play/5zyoqrsugeopel3ffhz_vq
+- Peasant's Quest (2004):
+  https://homestarrunner.com/disk4of12
+
+Just as in a text-based adventure,
+the most important thing you need to know when opening a shell is
 how to "look around". What do you see?
 
-(NOTE:The same applies to all commands, including external tools people have built: knowing how to "see" the current
-state relevant to your command is often the first step to get a grip on the command.)
-
-- Aside: this used to be a whole genre of text adventure games.
-  e.g. Zork (1977):
-  https://textadventures.co.uk/games/play/5zyoqrsugeopel3ffhz_vq
+The same advice applies to all commands!
+Including external tools people have built, and even commands outside of the shell, like
+functions in Python:
+knowing how to "see" the current
+state relevant to your command is often the first step to get more comfortable with the command.
 
 So how do we "look around"?
 
@@ -219,30 +278,10 @@ def less():
 # less()
 
 """
-=== Navigation ===
-
-Once we know how to "look around", we can make a plan for what to do.
-
-(NOTE: The same applies to all commands: knowing how to "modify" the current
-state relevant to your command is often the second step to get a grip on how
-the command works.)
-
-So what should we do?
-We need a way to move around and modify stuff:
-
-- cd
-- mkdir
-- touch
-"""
-
-def touch():
-    # TODO
-    raise NotImplementedError
-
-"""
 === Getting help ===
 
-This may actually be more important than the previous two!
+Another thing that is fundamentally important -- and perhaps even more important
+than the last thing -- is getting help!
 
 One of the following 3 things usually works:
 - `man cmd` or `cmd --help` or `cmd -h`
@@ -254,7 +293,64 @@ def get_help_for_command(cmd):
     subprocess.run([cmd, "-h"])
     subprocess.run(["man", cmd])
 
-# get_help_for_command("python3")
+get_help_for_command("python3")
+
+"""
+Other ways to get help?
+
+Some shell experts will tell you that you that you shouldn't be "alt-tab"ing outside of the
+shell, and should know how to do everything purely within it by getting help as above.
+But this is not really true.
+Using Google/AI can be really useful for a number of reasons.
+
+You can usually use:
+- Google
+- chatGPT
+- (new!) AI tools in the shell: e.g. https://github.com/ibigio/shell-ai
+
+to determine the right command to run for what you want to do.
+
+Important caveat: you need to know what it is you want to do first!
+"""
+
+# Example:
+# how to find all files matching a name unix?
+# https://www.google.com/search?client=firefox-b-1-d&q=how+to+find+all+files+matching+a+name+unix
+# https://stackoverflow.com/questions/3786606/find-all-files-matching-name-on-linux-system-and-search-with-them-for-text
+
+# Important caveats:
+# - we still needed to know the platform we are on (Unix)
+# - we still needed to know how to modify the command for your own purposes
+# - (for the AI tool) you still need to figure out how to install it (:
+#   + as some of you have noticed (especially on Windows), installing some software dev tools
+#     can seem like even more work than using/understanding the program itself.
+
+"""
+=== Navigation ===
+
+Once we know how to "look around", and how to "get help",
+we can make a plan for what to do.
+
+The same advice applies to all commands: knowing how to "modify" the current
+state relevant to your command is often the second step to get a grip on how
+the command works.
+
+(And, once again, this is also exactly what we would do in a text-based adventure :))
+
+So what should we do?
+We need a way to move around and modify stuff:
+
+- cd
+- mkdir
+- touch
+"""
+
+def cd(dir):
+    os.chdir(dir)
+
+def touch(file):
+    with open(file, 'w') as fh:
+        fh.write("\n")
 
 """
 === Anatomy of a shell command ===
@@ -271,6 +367,34 @@ How subprocess works:
 def run_python3_file(file):
     # TODO
     raise NotImplementedError
+
+def run_python3_file_interactive(file):
+    # TODO
+    raise NotImplementedError
+
+"""
+=== I/O ===
+
+What about I/O?
+Remember that one of the primary reasons for the shell's existence is to
+"glue" different programs together. What does that mean?
+
+Operators (most important):
+- |
+- >
+- >>
+- <
+- <<
+
+Exercises:
+
+- cat followed by ls
+- cat followed by cd
+- ls, save the results to a file
+- python3, save the results to a file
+- (Hard:) ls followed by cd into the first directory of interest
+
+"""
 
 """
 === Dangers of the shell ===
@@ -306,7 +430,7 @@ sudo: run a command in true "admin" mode
 # sudo rm -rf "/very/important/operating-system/file"
 
 """
-=== What is the Shell? (continued) ===
+=== What is the Shell? (recap) ===
 
 The shell IS:
 
@@ -389,6 +513,6 @@ Regular expressions:
 
 - Regex explainer: https://regexr.com/
 
-  Example to try for a URL: [a-zA-Z]+\.[a-z]+( |\.|\n)
+  Example to try for a URL: [a-zA-Z]+\\.[a-z]+( |\\.|\n)
 
 """
