@@ -239,6 +239,37 @@ So how do we "look around"?
 
 The $ are called "environment variables" -- there are others!
 These represent the current state of our shell environment.
+
+Which shell to use?
+- Some have syntax highlighting, GUIs, etc
+You'll want a shell that behaves lie a Unix-like shell. 
+Avoid PowerShell (Windows syntax)
+
+Systems will come with a built-in shell that you would start out with.
+You can install shells using other shells!
+
+When I write x = 3 in Python, x becomes a local variable assigned to the integer "3". 
+Similarly, $PATH and $PWD are local variables assigned to the shell. 
+
+When we run `echo $PWD`, what's actually happening:
+- $PWD gets expanded out to its value (/Users/./119/lecture2)
+- This value gets printed back out to the shell output by `echo`. 
+
+You can also define and set your own environment variables. 
+
+Will environment variables persist after the shell session terminates?
+- No
+- You would add it to the bashrc/zshrc file
+
+This is why we don't have to keep adding Python, conda, etc to the $PATH every time we open a new shell
+
+
+We can look inisde files using:
+- cat: print entire folder to terminal
+- ls: 
+- less: 
+- open README.md using default GUI application on your computer
+
 """
 
 def pwd_1():
@@ -248,6 +279,12 @@ def pwd_1():
 def pwd_2():
     # os.environ is the Python equivalent of the shell $ indicator.
     subprocess.run(["echo", os.environ["PWD"]])
+    # we can't just do $PWD directory
+
+def pwd_3():
+    return os.environ["PWD"]
+
+pwd_3()
 
 # pwd_1()
 # pwd_2()
