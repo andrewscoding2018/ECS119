@@ -203,14 +203,19 @@ What we have learned:
    special folders and hidden folders, and what that
    means.
 
+=============================================
+
 === Oct 9 ===
 
 We saw how to run basic commands in the shell and what it means.
 Today: a tour of the shell (looking around, navigating, help, I/O, etc.)
 
+Main 3 sections or categories of command:
+- 1. looking around, 2. getting help, 3. doing something
+
 === Informational commands: looking around ===
 
-An analgoy:
+An analogy:
 There used to be a whole genre of text-based adventure games.
 the shell is kind of like this.
 
@@ -234,47 +239,85 @@ So how do we "look around"?
 
 - ls
 - echo $PWD -- get our current location
+  PWD = Print Working Directory
+  echo = Repeat whatever I said
+  echo "text" -- repeat text
 - echo $PATH -- get other locations where the shell looks for programs
+  If you've had any difficulties installing software, you may have heard of
+  the path!
+
+  In order for software to actually run, you need to add it to your PATH.
+  python3 -- "command not found"???
+  conda -- "command not found"???
+  It's possible that you need to add something to your PATH.
+
+  When we do something like `python3 --version` -- we're checking that you
+  have the software installed, AND that it's been added to your path.
+
+  It's a common source of confusion to have multiple installations of the same
+  software on your machine -- this is common, for example, with Python
+  You need to add all installations, or, only the most relevant/recent installation
+  to your PATH to ensure that that's the one that gets run.
+
+  Programs in $PATH are available both programmatically (to other programs),
+  and to the user.
+
 - echo $SHELL -- get the current shell we are using
+
+  There are different shells and terminal implementations
+  The default one on MacOS these days is zsh
+  bash is another common/very well-used shell (for example, on Linux systems)
+
+  I can run one shell from another shell. Try:
+  - bash
+  - zsh
+  - Kind of like the Python3 command prompt
+
+  Are there advantages to one shell over another?
+
+  Usability: Some modern shells have fancy things like syntax highlighting,
+  GUIs that you can click around in, etc.
+
+  Portability: You'll want a shell that sort of behaves as a Unix-like shell
+  Avoid: PowerShell (Windows syntax)
+
+  (Mac and Linux systems are Unix-based. Windows is based on a totally different
+  OS architecture.)
+
+  A system will come with a built-in shell that you would start out with
+  If you want a different one you could use that shell to install another shell.
 
 The $ are called "environment variables" -- there are others!
 These represent the current state of our shell environment.
 
-Which shell to use?
-- Some have syntax highlighting, GUIs, etc
-You'll want a shell that behaves lie a Unix-like shell. 
-Avoid PowerShell (Windows syntax)
+When I write x = 3 in Python, x becomes a local variable assigned to the integer "3"
+Similarly, $PATH and $PWD are local variables in the shell.
+They're assigned to some values, and when written the shell will expand them out
+to whatever values they're assigned to.
 
-Systems will come with a built-in shell that you would start out with.
-You can install shells using other shells!
+When we run `echo $PWD` what's actually happening:
+- $PWD gets expanded out to its value (/Users/..../119/lecture2)
+- This value gets printed back out to the shell output by `echo`
 
-When I write x = 3 in Python, x becomes a local variable assigned to the integer "3". 
-Similarly, $PATH and $PWD are local variables assigned to the shell. 
+You can also define and set your own environment variables.
 
-When we run `echo $PWD`, what's actually happening:
-- $PWD gets expanded out to its value (/Users/./119/lecture2)
-- This value gets printed back out to the shell output by `echo`. 
+Are environment variables local? Will they persist after the shell session terminates?
 
-You can also define and set your own environment variables. 
-
-Will environment variables persist after the shell session terminates?
-- No
-- You would add it to the bashrc/zshrc file
-
-This is why we don't have to keep adding Python, conda, etc to the $PATH every time we open a new shell
-
-
-We can look inisde files using:
-- cat: print entire folder to terminal
-- ls: 
-- less: 
-- open README.md using default GUI application on your computer
-
+No, they won't
+But there is a way to make things persist and these are the shell config files ilke
+- .bash_profile, .bashrc, .zshrc, ...
+- These are files with random code in them that gets executed whenever you open a shell.
+- This is why we don't have to keep adding Python, conda, etc. to the $PATH every
+  time we open a new shell.
 """
 
+# with a built-in Python library
 def pwd_1():
     print(os.getcwd())
 
+pwd_1()
+
+# with subprocess (run an arbitrary command)
 # This one is a bit harder
 def pwd_2():
     # os.environ is the Python equivalent of the shell $ indicator.
@@ -286,17 +329,45 @@ def pwd_3():
 
 pwd_3()
 
-# pwd_1()
-# pwd_2()
+pwd_2()
+
+# In fact, we could just use this directly as well, and this offers a third way
+def pwd_3():
+    print(os.environ["PWD"])
+
+pwd_3()
 
 # Q: What happens when we run this from a different folder?
 
+# It matters what folder you run a program or command from!
+
 """
+Informational commands
+
+Remember that "looking around" is trying to see or look at the various
+information about the current state of our shell.
+That state includes:
+- what folder we are in
+- what environment variables (local variables) are set (and to what values)
+
 We can also look inside files and directories:
 
 - cat
+  Print out the entire file to the terminal
+  Useful programmatically
+
 - less
+  Slightly more helpful if you are a human
+  Type 'q' to quit
+
+- open
+  Open the file using a GUI application on your computer, if available
+
 - ls inside an existing directory
+
+  ls ..
+  ls ../lecture2
+
 """
 
 def cat_1():
@@ -309,12 +380,23 @@ def cat_2():
 def less():
     subprocess.run(["less", "lecture.py"])
 
-# cat_1()
-# cat_2()
+cat_1()
+cat_2()
 
-# less()
+less()
 
 """
+This concludes the first part on "looking around"
+Next time we'll finish this 3-part model
+
+If you're trying to understand really any system, but in particular the shell,
+the three things you're going to need to know is
+- looking around: how to view the current state of the system
+- help: how to get help with what commands are available
+- actually doing something
+
+e.g.: git status is telling you the current state of the system.
+
 === Getting help ===
 
 Another thing that is fundamentally important -- and perhaps even more important
@@ -323,6 +405,28 @@ than the last thing -- is getting help!
 One of the following 3 things usually works:
 - `man cmd` or `cmd --help` or `cmd -h`
 
+=== Recap ==
+
+We saw looking around
+Tutorial on the state of the shell (current working directory, environment variables, file contents)
+Next time we will look at getting help + navigating/doing stuff
+And we will also talk about Git, dangers of the shell, and other Q+A.
+
+=============================================
+
+=== Oct 11 ===
+
+Shell, continued
+
+Recall the three-part model: Looking around, getting help, doing something
+
+Zork demo:
+
+https://textadventures.co.uk/games/play/5zyoqrsugeopel3ffhz_vq
+
+=== Getting help, continued ===
+
+Let's run our "getting help" commands in Python:
 """
 
 def get_help_for_command(cmd):
@@ -330,15 +434,15 @@ def get_help_for_command(cmd):
     subprocess.run([cmd, "-h"])
     subprocess.run(["man", cmd])
 
-get_help_for_command("python3")
+# get_help_for_command("python3")
 
 """
 Other ways to get help?
 
 Some shell experts will tell you that you that you shouldn't be "alt-tab"ing outside of the
 shell, and should know how to do everything purely within it by getting help as above.
-But this is not really true.
-Using Google/AI can be really useful for a number of reasons.
+I don't agree with this advice.
+Using Google/AI can be really useful for a number of reasons!
 
 You can usually use:
 - Google
@@ -355,7 +459,8 @@ Important caveat: you need to know what it is you want to do first!
 # https://www.google.com/search?client=firefox-b-1-d&q=how+to+find+all+files+matching+a+name+unix
 # https://stackoverflow.com/questions/3786606/find-all-files-matching-name-on-linux-system-and-search-with-them-for-text
 
-# Important caveats:
+# Important notes:
+# Using Google+AI doesn't obliviate the need to understand things ourselves.
 # - we still needed to know the platform we are on (Unix)
 # - we still needed to know how to modify the command for your own purposes
 # - (for the AI tool) you still need to figure out how to install it (:
@@ -416,12 +521,11 @@ What about I/O?
 Remember that one of the primary reasons for the shell's existence is to
 "glue" different programs together. What does that mean?
 
-Operators (most important):
-- |
-- >
-- >>
-- <
-- <<
+Selected list of important operators
+(also called shell combinators):
+- |, ||, &&, >, >>, <, <<
+
+(Skip most of these depending on time)
 
 Exercises:
 
@@ -432,6 +536,50 @@ Exercises:
 - (Hard:) ls followed by cd into the first directory of interest
 
 """
+
+"""
+=== Git ===
+
+We can think of git under the same model as other shell commands!
+
+Informational commands:
+- git status
+- git log
+- git log --oneline
+- git branch -v
+
+What about help commands? Try:
+- man git
+- git status --help
+- git log --help
+- git add --help
+- git commit --help
+
+Finally, doing stuff:
+
+For getting others' changes:
+- git pull
+- git fetch
+- git checkout
+
+For sharing/publishing your own changes
+(a common sequence of three to run):
+- git add
+- git commit
+- git push
+
+Others (selected most useful):
+- git rebase
+- git rebase -i
+- git merge
+- git branch
+
+Just like before, we can also run these commands in Python.
+"""
+
+def git_status():
+    # TODO
+    raise NotImplementedError
 
 """
 === Dangers of the shell ===
@@ -467,7 +615,7 @@ sudo: run a command in true "admin" mode
 # sudo rm -rf "/very/important/operating-system/file"
 
 """
-=== What is the Shell? (recap) ===
+=== What is the Shell? (revisited) ===
 
 The shell IS:
 
@@ -512,17 +660,11 @@ A: In fact, we have seen that anything that can be done in the shell
 
 === Where we are going next? ===
 
-Things we want to cover:
-
-- How Git works
-
-- Shell combinators (|| && > < >> <<) -- often useful
+Things we didn't cover:
 
 - Using the shell for cleaning, filtering, finding, and modifying files
 
   + cf.: grep, find, sed, awk
-
-We will mention but probably not cover:
 
 - Regular expressions for pattern matching in text
 
