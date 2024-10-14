@@ -525,6 +525,20 @@ Selected list of important operators
 (also called shell combinators):
 - |, ||, &&, >, >>, <, <<
 
+Most useful:
+- This operator > sends output into a file
+  - This is called redirection
+- Operator >> appends to a file 
+What if you just want to append new content to the end of a file
+  - || and &&
+    Behave like "or" and "and" in regular programs
+    Useful for error handling
+
+    cmd1 || cmd2 --> do command 1 and command 2 (one success is independent of the other)
+    cmd1 && cmd2 --> do command 1 and command 2 (first one has to succeed)
+
+  
+    
 (Skip most of these depending on time)
 
 Exercises:

@@ -1,0 +1,3 @@
+lecture_output.txt
+ls_info.txt
+mod.py
