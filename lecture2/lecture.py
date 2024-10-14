@@ -588,6 +588,20 @@ Others (selected most useful):
 - git merge
 - git branch
 
+
+Some last stuff that's useful:
+ - git diff
+ - git dff --staged (after a git add)
+ - git diff --word-diff
+
+ - git merge
+ - git rebase
+ - git rebase -i (useful for modifying commit messages)
+ - git branch (create new branch, useful for new features)
+
+
+ grep, find, sed, awk are all pretty useful for data
+
 Just like before, we can also run these commands in Python.
 """
 
