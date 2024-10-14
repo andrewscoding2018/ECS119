@@ -51,9 +51,12 @@ We'll use another dataset from Our World in Data, this time on population.
 
 import pandas as pd
 
+
 def load_data():
     return pd.read_csv('population.csv')
 
+
+df = load_data()
 """
 
 === Informational commands ===
@@ -95,6 +98,7 @@ My answers (we will cover):
 
 - Get the shape
   .shape
+  . non null counts, data types, etc
 
   This is analagous to the shape of Numpy arrays.
 
@@ -121,6 +125,18 @@ My answers (we will cover):
   .notnull()
 
   What do we discover?
+
+  Dtafarmes are like 2D Numpy arrays
+  Series objects are like 1D numpy arrays
+
+========= Recap ========
+
+We finished the shell lecture
+We introduced a data operator (vs. generators/consumers)
+We began a tour of the DataFrame class and availabe data operators
+Started to talk about first steps after initially loading in dataset -> pandas
+
+
 """
 
 # TODO
