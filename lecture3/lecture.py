@@ -6,8 +6,11 @@ Lecture 3: Data operators in Pandas
 Operators include any function with input data and output data.
 (These are the "processing" part of our 3-stage data pipelines.)
 
-(Contrast with: generators, which produce data from nothing,
-and consumers, which consume data without producing anything.)
+(Contrast with:
+- input, which provide raw datasets into your pipeline
+- generators, which produce data from nothing
+- output, some sort of display to the user or export to storage
+- consumers, which consume data without producing anything.)
 
 === Learning Objectives ===
 
@@ -49,6 +52,8 @@ Let's start by getting a dataset.
 We'll use another dataset from Our World in Data, this time on population.
 """
 
+print("Welcome to lecture 3.")
+
 import pandas as pd
 
 
@@ -58,10 +63,9 @@ def load_data():
 
 df = load_data()
 """
-
 === Informational commands ===
 
-So, we've loaded a dataframe, what's the first step?
+So, we've loaded a data frame, what's the first step?
 
 We have already seen how to view the data (to stdout),
 first 5 rows, last 5 rows.
@@ -70,37 +74,29 @@ Q: What other things might we want to do
 to get a "feel" for a dataset?
 
 Your answers:
-
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
+- Get the column names
+- Get the shape
+- Get the column types
+- Get the count of the data
+- Check for null values
 
 My answers (we will cover):
 
 - Get the column names and types
   .columns
-  .info
+  .info()
+  - includes non-null count, types
 
 - Get the shape
   .shape
-  . non null counts, data types, etc
+    (59177, 4)
+    - I have 59177 rows, 4 columns.
 
   This is analagous to the shape of Numpy arrays.
+
+  - DataFrames are like 2D Numpy arrays
+  - Series ojbects are like 1D Numpy arrays
+    You can confirm this by doing x = df["Year"], x.shape.
 
   We can also get the shape of a single column or row,
   or even the column headers (for example).
@@ -109,6 +105,33 @@ My answers (we will cover):
   ["column1"].shape
   ["column1", "column2"].shape
   .iloc[0].shape
+
+===== Recap =====
+
+We finished the Shell lecture
+We introduced what a data operator is (contrast with: generators, consumers)
+We began a tour of the DataFrame class and available data operators
+We started to talk about the first steps that you might want to do
+when you initially load in a dataset to Pandas ("looking around")
+operators.
+
+========================================
+
+=== Wed Oct 16 ==
+
+Lessons for today:
+
+- Ways to look around a dataset when first loading it in
+
+- We can use relational operators on data frames
+
+- Mutability
+
+- Going beyond relational operators
+
+=== Continuing ===
+
+Continuing: things to do when first opening a new dataset
 
 - Get a random sample
 
@@ -142,9 +165,20 @@ Started to talk about first steps after initially loading in dataset -> pandas
 # TODO
 
 """
-=== Getting help ===
+=== Documentation and getting help ===
 
-Python actually has lots of ways to get help about a class.
+After we have gotten a handle on the dataset, our next step
+is to get help and documentation on what methods are available
+to us.
+
+- The Pandas documentation is very good. I recommend:
+  https://pandas.pydata.org/docs/reference/index.html#api
+
+- As an "introductory guide" I especially recommend the comparison
+  with SQL. We will be following this gudie:
+  https://pandas.pydata.org/docs/getting_started/comparison/comparison_with_sql.html
+
+In addition, Python has built-in ways to get help about a class.
 
 I will mention some that I have found particularly useful:
 
@@ -152,7 +186,7 @@ I will mention some that I have found particularly useful:
 - help(pd.DataFrame)
 - help(df)
 
-Others:
+Other miscellaneous:
 - help("modules")
 - set(locals())
 - set(globals())
@@ -167,13 +201,15 @@ def print_variables_in_scope():
 # print_variables_in_scope()
 
 """
-=== Doing stuff ===
+So what should we do?
+
+Let's start with relational algebra operators.
 
 === Relational operator equivalents ===
 
 Recall relational operators: select, project, join, group-by.
 
-Starting with Project:
+Project:
 We have already seen how to select columns by name.
 - Keep only certain columns
 """
@@ -206,7 +242,41 @@ Group-by:
 """
 
 """
+=== Mutation vs. immutability ===
+
+One important distinction in Python is between operators
+that mutate in-place, vs. those that return a new object.
+This can be a major source of errors!
+
+In general in Pandas, you should assume that operators
+return a new DataFrame, unless it can be done in an obvious
+way in-place
+  (e.g., modifying a single cell or column name).
+
+Also, when modifying in place, we often have to explicitly call
+a method which has an in-place version.
+
+Example:
+
+  .loc[row, col] = value
+
+Let's see some examples of this.
+
+  .insert(2, "foo2", [3, 4, 5, 6, 6])
+
+"""
+
+"""
+Some operations have both in-place and non-in-place versions.
+
+  .rename(columns={"foo": "bar"}, inplace=True)
+
+"""
+
+"""
 ===== A more general view =====
+
+Structure data vs general data processing?
 
 Not all data is structured nicely like Pandas DataFrames.
 It is sometimes useful to think in more general terms
