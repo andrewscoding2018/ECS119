@@ -59,6 +59,8 @@ import pandas as pd
 def load_data():
     return pd.read_csv('population.csv')
 
+df = load_data()
+
 """
 === Informational commands ===
 
@@ -116,9 +118,10 @@ operators.
 
 === Wed Oct 16 ==
 
-Lessons for today:
+Lesson plan for today:
 
-- Ways to look around a dataset when first loading it in
+- (continued) Ways to look around a dataset when first loading it in
+  & getting help
 
 - We can use relational operators on data frames
 
@@ -147,8 +150,6 @@ Continuing: things to do when first opening a new dataset
   What do we discover?
 """
 
-# TODO
-
 """
 === Documentation and getting help ===
 
@@ -168,8 +169,8 @@ In addition, Python has built-in ways to get help about a class.
 I will mention some that I have found particularly useful:
 
 - dir(df)
-- help(pd.DataFrame)
 - help(df)
+- help(pd.DataFrame)
 
 Other miscellaneous:
 - help("modules")
@@ -197,37 +198,227 @@ Recall relational operators: select, project, join, group-by.
 Project:
 We have already seen how to select columns by name.
 - Keep only certain columns
-"""
 
-"""
+- You'll notice that this doesn't actually modify the data frame
+
+Often, you might just modify by doing:
+
+  df = df[["columns", "that", "I", "actually", "want"]].
+
+  df[[]] -- creates an empty dataframe with no columns
+
 Select:
 - Filter rows based on a condition
 
 We can index into a DataFrame with a boolean array!
+
+- df[df["Year"] == 2023]
+
+- df[df["Code"].notnull()]
+
+Example to clean the data:
+
+- df_countries = df[(df["Code"].notnull()) & (df["Entity"] != "World")]
+
+=== Recap ===
+
+We saw how to get a random sample
+
+Random sampling (& looking at .info() and nonnull values) can help
+identify anomalies or biases in the data that we might need to clean
+
+We looked at how to do select and project (SELECT A FROM B WHERE C queries)
+in the SQL world using Data Frame equivalents.
+
+Next time:
+
+- We'll get into Join and other more interesting operations!
+
+========================================================
+
+=== Fri Oct 18 ===
+
+So far, we have seen:
+
+- Data frames are 2D arrays of data.
+  Rows are labled by integer index (by default)
+  Columns are labeled by name.
+
+- SQL equivalents:
+  SELECT FROM = access columns
+  WHERE = access rows by Boolean array
+
+Plan for today:
+
+- Continue our general overview of available data operators
+  + not just in Pandas, but in other data processing frameworks!
+    (SQL, R, Spark, etc.)
+
+- Focus in on some common gotchas:
+  null values, duplicate values,
+  mutability, and vectorization
+
+Let's start with another simple example:
+
+Ex.:
+- Define a DataFrame for an employee database with 3 employees.
+
+- Use SELECT WHERE to get the employees with a salary over $100,000.
 """
+
+employees = pd.DataFrame({
+    "Name": ["Alice", "Bob", "Charlie"],
+    "Salary": [2_000, 20_000, 200_000],
+    "Age": [25, 35, 45],
+})
+
+employees_over_100000 = employees[employees["Salary"] > 100000]
+
+"""
+We've seen select, project, now join!
+
+Review:
+- There are many types of join! What are a few?
+  + Left join
+  + Outer join
+  + Inner join
+  + Right join
+
+(not cover)
+  + Self join
+  + Cross join
+
+Pandas supports two main forms of join:
+
+Merge:
+Confusingly, "merge" is used for an actual (relational) join.
+Combine two DataFrames based on a common column:
+
+  df1.merge(df2)
+  df1.merge(df2, how="outer")
+
+Ex.: Let's define a table for the employee locations
+and join with our original employee data.
+"""
+
+locations = pd.DataFrame({
+    "Name": ["Charlie", "Bob", "Alice"],
+    "Location": ["NYC", "SFBA", "SFBA"],
+})
+
+print(employees.merge(locations))
 
 """
 Join:
-- Combine two DataFrames based on a common column
+We can also join on index (often more efficient if it fits your use case)
 
-df.join(df, lsuffix="1", rsuffix="2")
+  df1.join(df2, lsuffix="1", rsuffix="2")
 
-df.join(other, on="Year")
+  Joins by index.
 """
+
+"""
+How can different joins lead to different semantics?
+
+Ex. 1: Define two employees with the same name
+Ex. 2: Define one employee with a missing location
+Ex. 3: Define one employee with a missing name
+"""
+
+employees2 = pd.DataFrame({
+    "Name": ["Alice", "Alice", "Bob"],
+    "Salary": [2_000, 20_000, 200_000],
+    "Age": [25, 35, 45],
+})
+
+locations2 = pd.DataFrame({
+    "Name": ["Alice", "Alice", "Bob"],
+    "Location": ["NYC", "SFBA", "SFBA"],
+})
+
+employees3 = pd.DataFrame({
+    "Name": ["Alice", "Alice", "Bob", "Charlie"],
+    "Salary": [2_000, 20_000, 200_000, 2_000_000],
+    "Age": [25, 35, 45, 60],
+})
+
+locations3 = pd.DataFrame({
+    "Name": ["Bob", "Charlie", "Delphina"],
+    "Location": ["NYC", "SFBA", "SFBA"],
+})
+
+print(employees3.merge(locations3, how="inner"))
+print(employees3.merge(locations3, how="left"))
+print(employees3.merge(locations3, how="right"))
+print(employees3.merge(locations3, how="outer"))
 
 """
 Group-by:
 
     df.groupby("Year").groups[2023]
+        # return indices in group 2023
     df.groupby("Year").get_group(2023)
+        # return the actual table of items in group 2023
+
+    (BTW: equality:
+      == does element-wise comparison
+      .equals compares the whole table
+    )
+
     df.groupby("Year").sum()
+      more reasonable thing to do:
+      df[["Year", "Population (historical)"]].groupby("Year").sum()
+
     df.groupby("Year").count()
     df.groupby("Year")["Population (historical)"].sum()
     df.groupby("Year")["Population (historical)"].mean()
 """
 
 """
-=== Mutation vs. immutability ===
+=== Common gotchas! ===
+
+Some common gotchas in Pandas:
+
+- Null values (in join/merge)
+- Duplicate values (in join/merge)
+- Indexing (iloc vs. loc -- keys vs. indices)
+
+  loc: how to access rows and row, column pairs by key
+  iloc: how to access rows and row, column pairs by index
+
+Why can iloc be misleading?
+
+  - integer row number doesn't always correspond to logical key
+
+  - Use loc to get the row(s) by key, iloc to get the row by row index.
+
+double_table.iloc[1, 1] -- row 1, column 1
+double_table.loc[1, "Salary"] -- row key 1, column key Salary
+"""
+
+pd.concat([employees, employees])
+#       Name  Salary  Age
+# 0    Alice    2000   25
+# 1      Bob   20000   35
+# 2  Charlie  200000   45
+# 0    Alice    2000   25
+# 1      Bob   20000   35
+# 2  Charlie  200000   45
+
+"""
+Recap of what we covered today:
+- We've finished informally proving that Pandas data frames can be used
+  for everything SQL can be used for
+- And they also support Numpy-style operations (like indexing by row, col number)
+
+What we'll continue with  next time:
+Two important gotchas in terms of the design:
+- Mutability
+- Vectorization
+
+=======================================
+
+=== Mutability ===
 
 One important distinction in Python is between operators
 that mutate in-place, vs. those that return a new object.
@@ -256,10 +447,35 @@ Some operations have both in-place and non-in-place versions.
 
   .rename(columns={"foo": "bar"}, inplace=True)
 
+Exercise:
+
+1. Define a view of a dataframe (by using a select where)
+and try to modify a value in it. What happens?
+
+2. Use .concat to create a new dataframe.
+   What happens to the original values?
+
+  pd.concat(df1, df2)
+
+  (Concat is another gotcha!)
+
 """
 
 """
-===== A more general view =====
+=== Vectorization ===
+
+What is vectorization?
+
+Exercise: Using the population data, define a new row for
+the next year (year + 1).
+
+Then define the same thing by using a for loop
+over the entries of the data frame.
+What happens?
+"""
+
+"""
+===== A more general view (beyond Pandas) =====
 
 Structure data vs general data processing?
 
