@@ -9,9 +9,13 @@ Announcements:
     Please remember to check for errata (if you have an old version of the assignment)
     https://piazza.com/class/m12ef423uj5p5/post/48
 
-- Midterm will be in class on Friday, Nov 8.
+- https://piazza.com/class/m12ef423uj5p5/post/54
 
-- No class on Monday, Oct 28 (one week from today).
+  + Midterm will be in class on Friday, Nov 8.
+
+  + I will hold an additional office hour Thursday 430p
+
+  + No class on Monday, Oct 28 (one week from today).
   There will be an optional video lecture in its place (topic TBD).
 
 ## Plan
@@ -29,3 +33,19 @@ Then, we're going to switch gears a bit for Lecture 4:
 Note:
 
 - If you wish, you may finish the Lecture 3 notes on your own time.
+
+## Oct 23
+
+Announcements:
+
+- HW1 due Friday
+
+- Office hours poll
+
+Plan:
+
+- Poll
+
+- Continue: parallel, concurrent, and distributed computing; main concepts
+
+- Parallel thinking: types of parallelism, Amdahl's law
