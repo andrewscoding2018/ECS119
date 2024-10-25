@@ -289,7 +289,7 @@ We talked about parallelism: multiple workers working at once
 Difference between parallelism & concurrency & distribution:
 - Parallelism: multiple workers working at the same time
 - Concurrency: multiple workers accessing the same data or performing potentially conflicting operations
-- Distribution: spatially distributed workers and belts that operate and may fail completely independently.
+- Distribution: spatially distributed workers and data that operate and may fail completely independently.
 
 ============================
 
@@ -303,11 +303,23 @@ Which of the following scenarios are parallel, concurrent, and distributed?
 https://forms.gle/RY4QH5utjLtww6Ur8
 https://tinyurl.com/m3pvbdwe
 
+=== Poll Answers ===
+
+The poll wording has been slightly updated.
+
+1. Parallel
+2. Parallel + Concurrent
+3. Parallel + Concurrent
+4. Concurrent + Distributed
+5. Parallel + Distributed
+6. Parallel + Concurrent + Distributed
+
 === Lecture outline ===
 
 - Last time: parallel example
 - Today: concurrent + distributed examples
-- Parallel thinking and Amdahl's Law
+- Parallel thinking, types of parallelism, and quantifying
+  the amount of parallelism available
 - Measuring scaling & types of scaling
 
 === Concurrent examples ===
@@ -321,9 +333,12 @@ Modify our example to keep track of an output.
 """
 
 # Redefine N -- modify here as needed
-N = 200_000_000
+N = 1000
 
+# Shared memory between the processes
 # Shared list for results
+# this has to be a special Array instead of a Python
+# list -- don't worry about this (impl detail)
 from multiprocessing import Array
 
 # new argument: results array
@@ -334,8 +349,15 @@ def worker3(results):
     for i in range(N // 2):
         sum += i
         count += 1
+
+        # Super race-y version
+        # results[0] += i
+        # results[1] += 1
+
     print(f"Worker 3 result: {sum} {count}")
-    # TODO: modify for concurrent implementation
+    # Save the results in the shared results array
+    results[0] += sum
+    results[1] += count
 
 def worker4(results):
     sum = 0
@@ -343,8 +365,15 @@ def worker4(results):
     for i in range(N // 2, N):
         sum += i
         count += 1
+
+        # Super race-y version
+        # results[0] += sum
+        # results[1] += count
+
     print(f"Worker 4 result: {sum} {count}")
-    # TODO: modify for concurrent implementation
+    # Save the results in the shared results array
+    results[2] += sum
+    results[3] += count
 
 def average_numbers_concurrent():
     # Create a shared results array
@@ -367,8 +396,9 @@ def average_numbers_concurrent():
 
     # Calculate results
     print(f"Thread results: {results[:]}")
-    # TODO: fill in
-    # print(f"Result: {sum} / {count} = {sum / count}")
+    sum = results[0] + results[2]
+    count = results[1] + results[3]
+    print(f"Average: {sum} / {count} = {sum / count}")
     print(f"Computation finished")
 
 # Uncomment to run
@@ -377,11 +407,22 @@ def average_numbers_concurrent():
 #     average_numbers_concurrent()
 
 """
+Now we don't just have parallelism, we have concurrency
+
 Questions:
 
 What do you think would happen if we modified the example so that both
-processes access the same variables?
+processes access the same elements of the array?
 (Let's try it)
+
+Answer: it seems to work!
+... But it doesn't actually work in general
+... we just get lucky most of the time.
+... Very very rarely, worker3 will read the value, worker4 will read it,
+    then worker3 will write it, then worker4 will write it,
+    and destroy worker3's work.
+
+    This is called a race condition.
 
 What do you think would happen if we modified the example to use the shared
 results list directly for each worker's local variables?
@@ -389,15 +430,63 @@ results list directly for each worker's local variables?
 
 Does something go wrong?
 
+    Contention:
+
+    Multiple threads or processes trying to access the same data at the
+    same time causes a vast decline in performance.
+
+    AND
+    we have a race condition which, this time (unlike above)
+    is actually reliably triggering every time we run the code.
+
+    Observe that not only do some reads/writes not get counted,
+    they also corrupt the data and produce completely random
+    results.
+
+    A "data race" is a particular race condition where a read
+    and a write happens to the same memory location at the same
+    time.
+
+    On most architectures, a data race results in random/arbitrary/
+    nondeterministic behavior.
+
+Moral of the story:
+    Don't read and write to the same data at the same time!
+
 Which of the above is the best concurrent solution and why?
+
+A: the first solution is best: both workers keep track of their
+    results using local variables and write their answers to
+    completely different indices in the shared memory array.
+
+When parallelizing pipelines, we want to follow this principle;
+generally speaking, we want different workers to be working on
+- different portions of the data
+- different steps in the pipeline
+- producing output in different places or to different output files
+
+So that we avoid any of the above issues.
 
 === Concepts ===
 
-- Race condition
+- Race condition: when the order in which workers complete their task
+  (which one completes it first) affects the final outcome
+
 - Data race
+  A particular race condition where a read and a write happen at the same
+  time and in the same memory location
+
 - Contention
+  Reduction in performance due to competing concurrent operations
+
 - Deadlock
+  Different threads try to access the same data at the same time in a way
+  that prevents any thread from continuing.
+
 - Consistency
+  The ability of parallel and concurent code to behave as if it were
+  sequential code.
+  You want the same answers as if you just ran the code sequentially.
 
 === Additional exercises ===
 
@@ -407,14 +496,54 @@ Modify the example to add up a shared list instead of an iterator.
 Write a version that uses (i) shared reads to the list and (ii) shared writes
 to the list (for example popping off elements as they are used).
 What happens?
-"""
 
-"""
+=== Recap from today ===
+
+We saw how code can be concurrent (not just parallel)
+We saw the main problems that you can run into with concurrent code
+In this class, we want to avoid all of the above problems and parallelize
+in a way that avoids reading/writing to the same memory at the same time.
+
+Next time: a very short distributed example
+and then get into:
+- types of parallelism (in a pipeline)
+- quantifying parallelism (in a pipeline)
+
+=======================================================
+
+=== Oct 25 ===
+
+=== Poll ===
+
+1.
+Two workers, threads, or processes are accessing the same shared memory variable "x". Each worker increments the variable 100 times:
+
+    for i in range(100):
+        x += 1
+
+What are possible values of x?
+
+2.
+The scenario above exhibits... (select all that apply)
+- Concurrency
+- Parallelism
+- Distribution
+- Contention
+- Deadlock
+- Race condition
+- Data race
+
+https://forms.gle/wb8WEUF4fRgGcPVeA
+https://tinyurl.com/3k9yeuym
+
 === What is distribution? ===
 
-Distribution means that we have multiple workers and/or belts
+Distribution means that we have multiple workers and belts
 **in different locations**
 can process and fail independently.
+
+The workers must be on different computers or devices.
+    (Why does it matter?)
 
 For this one, it's more difficult to simulate in Python directly.
 We can imagine that our workers are computed by an external
@@ -426,6 +555,7 @@ server, then use the server to compute the sum of the numbers.
 (You won't be able to use this code; it's connecting to my own SSH server!)
 """
 
+# for os.popen to run a shell command (like we did on HW1 part 3)
 import os
 
 def ssh_run_command(cmd):
@@ -447,6 +577,7 @@ def average_numbers_distributed():
     print("Distributed computation complete")
 
 # Uncomment to run
+# This won't work on your machine!
 # average_numbers_distributed()
 
 """
@@ -463,49 +594,50 @@ Q4: can we have distribution with concurrency?
 """
 
 """
-===== Parallel thinking =====
+===== Back to parallelism! ======
 
-At this point in the lecture, we will
-move from thinking about parallel, concurrent, and distributed programming in general
+Now that we know about concurrency and distribution,
+at this point in the lecture, let's go back
+to simple parallelism.
+Also, we will move from thinking about parallelism in general
 to how they are most used / most useful in data science.
 
-- Higher-level viewpoint & what matters
-- Thinking about parallelism in your pipeline
-- Quantifying parallelism in your pipeline
+Goals:
 
-=== Higher-level viewpoint ===
+    - We want to think about parallelism at a higher-level than
+      individual workers and processes
 
-In the context of data pipelines and data science,
-we're often thinking in terms of data sets
+      Simply: is it parallel? how much parallelism?
 
     - We want massively parallel computations
+      + we want fast results
+        (not waiting 2 hours or 2 days to get a query result)
+      + we want deployed pipelines to not
+        waste money and resources
 
     - We want to avoid thinking about concurrency
-        (how?)
+        (why?)
+        + we can do this by...
 
-    - We are often forced to distribute computations
+    - We want to distribute data and computations
         (why?)
 
         + But even when the dataset is distributed, we want to think about
           it using the same abstractions
 
-We care the most about parallelism!
-
 Of course, priorities are important:
 
-    - We want to prototype using a sequential implementation first.
+    - We still want to prototype using a sequential implementation first.
 
-    - We may want to test on smaller datasets if needed
+    - We still want to test on smaller datasets if needed
 
     - For prototypting: resort to parallelism...
 
     - For production: resort to parallelism...
 
-How do we think about parallelism?
-
 === Parallel thinking in data science ===
 
-Types of parallelism:
+We often think about parallelism by dividing it into three types:
 
 - Data parallelism
 
@@ -529,13 +661,61 @@ def average_numbers_pipeline_parallelism():
     raise NotImplementedError
 
 """
+What do these types of parallelism look like on a real pipeline
+rather than a toy example?
+
+Data parallelism:
+
+Pipeline parallelism:
+
+Task parallelism:
+
+Which of these is most important?
+(Hint: it's not a close contest)
+A:
+"""
+
+"""
 === Quantifying parallelism ===
 
+Another way to think about parallelism:
 What amount of parallelism is available in a system?
 
 Amdahl's law:
 https://en.wikipedia.org/wiki/Amdahl%27s_law
 
+=== Standard form of the law ===
+
+
+
+=== Example with a simple task ===
+
+
+
+This applies to distributed computations as well!
+
+=== Alternate form ===
+
+
+
+=== Example with two tables ===
+
+Let's start with a simple example:
+we have two tables, of employee names and employee salaries.
+We want to compute which employees make more than 1 million Euros.
+The employee salaries are listed in dollars.
+
+We are given as input the CEO name.
+We want to get the salary associated with the CEO,
+convert it from USD to Euros, and filter only the rows where the
+result is over 1 million.
+Assume all basic operations take 1 unit of time per row.
+
+What does Amdahl's law say about our simple
+average_numbers pipeline?
+"""
+
+"""
 Some TODOs:
 
 1. Rephrase in terms of running time
@@ -543,4 +723,68 @@ Some TODOs:
 2. Rephrase in terms of throughput
 
 3. Rephrase in terms of latency
+"""
+
+"""
+=== Parallelizing our code in Pandas? ===
+
+We don't want to parallelize by hand! (why? See problems with concurrency above)
+
+Dask is a simple library that works quite well for parallelizing datasets
+on a single machine as a drop-in replacement for Pandas.
+"""
+
+# conda install dask or pip3 install dask
+# import dask
+
+def dask_example():
+    # Example dataset
+    df = dask.datasets.timeseries()
+
+    # Dask is lazy -- it only generates data when you ask it to.
+    # (More on laziness later).
+    print(type(df))
+    print(df.head(5))
+
+    # Use a standard Pandas filter access
+    df2 = df[df.y > 0]
+    print(type(df2))
+    print(df2.head(5))
+
+    # Do a group by operation
+    df3 = df2.groupby("name").x.mean()
+    print(type(df3))
+    print(df3.head(5))
+
+    # Compute results -- this processes the whole dataframe
+    print(df3.compute())
+
+# Uncomment to run.
+# dask_example()
+
+"""
+=== End note: vertical vs. horizontal scaling ===
+
+- Vertical: scale "up" resources at a single machine (hardware, parallelism)
+- Horizontal: scale "out" resources over multiple machines (distribution)
+
+This lecture, we have only seen *vertical scaling*.
+But vertical scaling has a limit!
+Remember that we are still limited in the size of the dataset we can
+process on a single machine
+(recall Wes McKinney estimate of how large a table can be).
+Even without Pandas overheads,
+we still can't process data if we run out of memory!
+
+So, to really scale we may need to distribute our dataset over many
+machines -- which we do using a distributed data processing framework
+like Spark.
+This also gives us a convenient way to think about data pipelines
+in general, and visualize them.
+We will tour PySpark in the next lecture.
+
+In addition to scaling even further, distribution can offer an even
+more seamless performance compared to parallelism as it can eliminate
+many coordination overheads and contention between workers
+(see partitioning: different partitions of the database are operated entirely independently by different machines).
 """
