@@ -526,12 +526,31 @@ What are possible values of x?
 2.
 The scenario above exhibits... (select all that apply)
 - Concurrency
+    - Handling multiple tasks continuously by interleaving execution
+    - Web server handling multiple requests concurrently by switching between tasks
 - Parallelism
+    - Parallelism: simultaneous execution of multiple tasks to speed up computation
+    - Process a large matrix by splitting it across CPU cores to perform calculations on 
+      sections simultaneously
 - Distribution
+    - Spread tasks across multiple machines to achieve faster execution or higher availability
+    - Distributed Database like MongoDB, where data is partitioned and stored across multiple 
+      servers for load balancing. 
 - Contention
+    - Multiple threads or processes compete for the same resource, causing delays
+    - Multiple threads trying to access a single log file, causing each thread to wait for the 
+        other to release the lock
 - Deadlock
+    - 2 or more processes are stuck waiting indefinitely.
+    - Two threads holding a lock that the other needs to proceed, causing stuck indefinitely.
 - Race condition
+    - Flaw that occurs with timing of thread execution -> program behavior
+    - Two threads incrementing a shared counter without synchronization, leading to missed
+        increments when threads overlap
 - Data race
+    - Two threads access shared data simultaneously - with at least one modifying it. (causing unpredictable results)
+    - One threads reads a variable while another thread writes it to at the same time
+        - Causes unpredictable values
 
 https://forms.gle/wb8WEUF4fRgGcPVeA
 https://tinyurl.com/3k9yeuym
@@ -584,12 +603,18 @@ def average_numbers_distributed():
 Questions:
 
 Q1: can we have distribution without parallelism?
+ - Yes, we just did
 
 Q2: can we have distribution with parallelism?
+ - Yes, let server to run and compute answer while
 
 Q3: can we have distribution without concurrency?
+- Sending a single task to server and let it compute
+- Two databases partitions running separately and don't run
+
 
 Q4: can we have distribution with concurrency?
+    - Distributed machines sending requests and passing messages
 
 """
 
@@ -617,10 +642,19 @@ Goals:
 
     - We want to avoid thinking about concurrency
         (why?)
+
+        - Concurrency comes with lots of pains like:
+            - data races, contention, etc...
         + we can do this by...
+            - relying on libraries that others have written
+                to help us write them
+            + these libraries avoid reading to the same data at the same time
 
     - We want to distribute data and computations
         (why?)
+
+        recall: parallelization happens on a single machine
+        - distributed code enables us to scale even further
 
         + But even when the dataset is distributed, we want to think about
           it using the same abstractions
@@ -632,18 +666,74 @@ Of course, priorities are important:
     - We still want to test on smaller datasets if needed
 
     - For prototypting: resort to parallelism...
+        - only needed for fast query results
 
     - For production: resort to parallelism...
+        - if it's faster, cheaper, more efficient
 
 === Parallel thinking in data science ===
 
 We often think about parallelism by dividing it into three types:
 
 - Data parallelism
+    - This is the most important
+    - Different parts of dataset can be processed in parallel
+    - SQL query where you need to match an employee name with a salary
+
+    Different rows in the input:
+        - Match one employee name totally independently from another employee name
+        these tasks can be done in parallel
+        Same task, different data points
+        - 
+
+    Example 2:
+        
 
 - Task parallelism
+    Different tasks doen in parallel
+    - 
+    Example 1:
+        SQL query to compute highest salary and employee with lowest salary
+        You can compute highest with one query and lowest with a separate
+        query
+
+        These two queries can be done in parallel
+
+    Example 2:
+        avg of first 200,000 integers problem
+        we could compute the sum with one worker
+        and then the count with another worker
 
 - Pipeline parallelism
+
+    If two tasks are done in sequence, we can still benefit from parallelism
+
+    (dataset 1) ---> task 1 ---> (output 1) --> task 2 --> (output 2)
+
+    Example 1: take a dataset of employees
+        - For each name, strip the spaces from each name
+        - Extract the first name
+        - Extract the last letter of the first name
+        - Save output to a data frame
+
+        The tasks themselves are not parallel
+
+        Each task is a prerequisite to the previous task
+
+    It doesn't seem like there's parallelism here, but you can draw it
+
+    +-----------+-----------+-----------+-----------+-----------+
+    |   Cycle   |   Stage 1 |   Stage 2 |   Stage 3 |   Output  |
+    +-----------+-----------+-----------+-----------+-----------+
+    |    1      |   Task A  |           |           |           |
+    |    2      |   Task B  |   Task A  |           |           |
+    |    3      |   Task C  |   Task B  |   Task A  |           |
+    |    4      |   Task D  |   Task C  |   Task B  |   Task A  |
+    |    5      |   Task E  |   Task D  |   Task C  |   Task B  |
+    |    6      |           |   Task E  |   Task D  |   Task C  |
+    |    7      |           |           |   Task E  |   Task D  |
+    |    8      |           |           |           |   Task E  |
+    +-----------+-----------+-----------+-----------+-----------+
 
 Which of these is our average_numbers computation?
 
