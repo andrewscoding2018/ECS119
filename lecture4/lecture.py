@@ -558,11 +558,17 @@ https://tinyurl.com/3k9yeuym
 === What is distribution? ===
 
 Distribution means that we have multiple workers and belts
-**in different locations**
+**in different physical locations**
 can process and fail independently.
 
-The workers must be on different computers or devices.
+The workers must be on different physical computers or physical devices.
     (Why does it matter?)
+
+    Running on the same physical device, both workers have
+    access to the same resources;
+    Running on two different devices, they access different resources, and one worker could crash even if the other
+    one doesn't.
+    So, it introduces new challenges.
 
 For this one, it's more difficult to simulate in Python directly.
 We can imagine that our workers are computed by an external
@@ -599,23 +605,42 @@ def average_numbers_distributed():
 # This won't work on your machine!
 # average_numbers_distributed()
 
+# This waits until the first connection finishes before
+# starting the next connection; but we could easily modify
+# the code to make them both run in parallel.
+
 """
 Questions:
 
 Q1: can we have distribution without parallelism?
  - Yes, we just did
 
+    A: Yes, we just did
+
 Q2: can we have distribution with parallelism?
  - Yes, let server to run and compute answer while
+
+    A: Yes, we could allow the server to run and compute
+    an answer while we continue to compute other stuff,
+    or while we run a separate connection to a second
+    server.
 
 Q3: can we have distribution without concurrency?
 - Sending a single task to server and let it compute
 - Two databases partitions running separately and don't run
 
 
+    A: Yes, for example we send a single task to the
+    server and let it complete that task
+
+    A: Even simpler: we have two databases or database
+    partitions running separately (and they don't interact)
+
 Q4: can we have distribution with concurrency?
     - Distributed machines sending requests and passing messages
 
+    Yes, we often do, for example when distributed workers
+    communicate via passing messages to each other
 """
 
 """
@@ -641,23 +666,23 @@ Goals:
         waste money and resources
 
     - We want to avoid thinking about concurrency
-        (why?)
-
-        - Concurrency comes with lots of pains like:
-            - data races, contention, etc...
-        + we can do this by...
-            - relying on libraries that others have written
-                to help us write them
-            + these libraries avoid reading to the same data at the same time
+        (why?: concurrency comes with lots of pains,
+         including data races, contention, etc.)
+        + we can do this by relying on libraries that
+          others have built to solve concurrent programming
+          problems and to parallelize safely.
+          + how those libraries work: they avoid
+            reading and writing to the same data at the
+            same time.
 
     - We want to distribute data and computations
         (why?)
+        parallelization happens on a single machine,
+        distributed code enables us to scale even further.
 
-        recall: parallelization happens on a single machine
-        - distributed code enables us to scale even further
-
-        + But even when the dataset is distributed, we want to think about
-          it using the same abstractions
+        + But even when the dataset is distributed, we
+          don't want to worry about concurrency and implementation
+          details.
 
 Of course, priorities are important:
 
@@ -665,13 +690,19 @@ Of course, priorities are important:
 
     - We still want to test on smaller datasets if needed
 
-    - For prototypting: resort to parallelism...
-        - only needed for fast query results
+    - For prototypting: resort to parallelism
+        if you need it for fast query results
 
-    - For production: resort to parallelism...
-        - if it's faster, cheaper, more efficient
+    - For production: resort to parallelism
+        if it's faster, cheaper, and more efficient
 
 === Parallel thinking in data science ===
+
+We've written our pipeline:
+Q1: Is it parallel?
+Q2: How much parallelism?
+
+About Q1:
 
 We often think about parallelism by dividing it into three types:
 
@@ -689,6 +720,27 @@ We often think about parallelism by dividing it into three types:
     Example 2:
         
 
+    This is the most important one
+
+    Different parts of your dataset can be processed in parallel.
+
+    Example 1: imagine an SQL query where you need to match
+    the employee name with their salary
+
+    Different rows in the input: I can match one employee
+    name totally independently from another employee name --
+    these tasks can be done in parallel!
+    That's data parallelism.
+
+    Example 2: In our running example, we were adding up
+    the numbers between 1 and 20,000,000.
+    We notice that we can add up the numbers between
+    1 and 10,000,000 and the numbers betweeen
+    10,000,001 and 20,000,000 separately!
+    That's data parallelism.
+
+    ----> i.e. same task, different data points
+
 - Task parallelism
     Different tasks doen in parallel
     - 
@@ -704,51 +756,169 @@ We often think about parallelism by dividing it into three types:
         we could compute the sum with one worker
         and then the count with another worker
 
+    Different tasks can be done in parallel.
+
+    ----> i.e. different task, same data points
+
+    Example 1: You have an SQL query where you want
+    to compute the employee with the highest salary
+    and the employee with the lowest salary.
+
+    You might realize that you can compute highest
+    with one query, and lowest with a separate query,
+    and these two queries can be done in parallel.
+
+    Example 2: Going back to our running example,
+    avg. of the first 200,000,000 integers
+    we could compute the sum with one worker,
+    and the count with the other worker.
+    That's task parallelism.
+
 - Pipeline parallelism
 
-    If two tasks are done in sequence, we can still benefit from parallelism
+    (The last type of parallelism is the most strange)
+    It's that if two tasks are done in sequence,
+    we can still benefit (surprisingly) from parallelism!
 
-    (dataset 1) ---> task 1 ---> (output 1) --> task 2 --> (output 2)
+    (dataset) --> task 1 --> (output 1) --> task 2 --> (output 2)
 
-    Example 1: take a dataset of employees
-        - For each name, strip the spaces from each name
-        - Extract the first name
-        - Extract the last letter of the first name
-        - Save output to a data frame
+    Example: Take our dataset of employees, for each employee
+    name, strip the spaces from the name, then extract the first
+    name, then extract the last letter of the first name,
+    and save that to an output data frame.
 
-        The tasks themselves are not parallel
+    This is a pipeline of tasks:
+    -> I have to strip the spaces before I extract the first name
+    -> I have to extract the first name before I can get the last letter
+    -> I have to get the last letter before I can save it to the output data frame
 
-        Each task is a prerequisite to the previous task
+    (dataset) --> task 1 --> task 2 --> task 3 --> task 4
 
-    It doesn't seem like there's parallelism here, but you can draw it
+    It doesn't seem like there's any parallelism here!
+    But there is.
 
-    +-----------+-----------+-----------+-----------+-----------+
-    |   Cycle   |   Stage 1 |   Stage 2 |   Stage 3 |   Output  |
-    +-----------+-----------+-----------+-----------+-----------+
-    |    1      |   Task A  |           |           |           |
-    |    2      |   Task B  |   Task A  |           |           |
-    |    3      |   Task C  |   Task B  |   Task A  |           |
-    |    4      |   Task D  |   Task C  |   Task B  |   Task A  |
-    |    5      |   Task E  |   Task D  |   Task C  |   Task B  |
-    |    6      |           |   Task E  |   Task D  |   Task C  |
-    |    7      |           |           |   Task E  |   Task D  |
-    |    8      |           |           |           |   Task E  |
-    +-----------+-----------+-----------+-----------+-----------+
+              task 1     task 2     task 3     task 4
+    input 1:    1          2          3          4
+    input 2:    2          3          4          5
+    input 3:    3          4          5          6
 
-Which of these is our average_numbers computation?
+    That's pipeline parallelism!
 
-Exercise:
-Write an example of each of the others.
+***** Ended here for Oct 25 *****
+
+============================================
+
+===== Oct 30 =====
+
+Recap:
+We saw some examples (without writing code)
+of data parallelism, task parallelism, and pipeline parallelism.
+
+We saw that our original average_numbers computation exploited...
+
+Let's do a poll to review.
+
+=== Poll ===
+
+Which types of parallelism are present in the following scenario? (select all that apply)
+
+A Python script needs to:
+- load a dataset into Pandas: students.csv, with 100 rows
+- calculate a new column which is the total course load for each student
+- send an email to each student with their total course load
+
+https://forms.gle/bfbjmwhJHgWqRRux8
+https://tinyurl.com/5kvanhwv
+
+=== Exercises ===
+
+Exercise: Let's write some actual code.
+
+1. Write a version of our average_numbers pipeline that exploits task parallelism.
+
+2. Write a version of our average_numbers pipeline that exploits pipeline parallelism.
+    (This one will be a bit more contrived)
+
+We will start with a skeleton of our code from the concurrent example.
 """
 
+def worker5(results):
+    # TODO: fill in worker 5
+    raise NotImplementedError
+
+def worker6(results):
+    # TODO: fill in worker 6
+    raise NotImplementedError
+
 def average_numbers_task_parallelism():
+    # Create a shared results array
+    # i = integer, d = double (we use d here because the integers suffer from overflow)
+    results = Array('d', range(2))
+
+    # Iniitalize our shared array
+    results[0] = 0
+    results[1] = 0
+
+    # Like run_in_parallel but with added code to handle arguments
+    p1 = Process(target=worker5, args=(results,))
+    p2 = Process(target=worker6, args=(results,))
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
+
+    # Calculate results
     # TODO
+    raise NotImplementedError
+    # print(f"Thread results: {results[:]}")
+    # sum = results[0] + results[2]
+    # count = results[1] + results[3]
+    # print(f"Average: {sum} / {count} = {sum / count}")
+    # print(f"Computation finished")
+
+# Uncomment to run
+# if __name__ == "__main__":
+#     freeze_support()
+#     average_numbers_task_parallelism()
+
+def worker7(results):
+    # TODO: fill in worker 7
+    raise NotImplementedError
+
+def worker8(results):
+    # TODO: fill in worker 8
     raise NotImplementedError
 
 def average_numbers_pipeline_parallelism():
+    # Create a shared results array
+    # i = integer, d = double (we use d here because the integers suffer from overflow)
+    results = Array('d', range(20))
+
+    # Iniitalize our shared array
+    for i in range(20):
+        results[i] = 0
+
+    # Like run_in_parallel but with added code to handle arguments
+    p1 = Process(target=worker7, args=(results,))
+    p2 = Process(target=worker8, args=(results,))
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
+
+    # Calculate results
     # TODO
-    # This is harder!
     raise NotImplementedError
+    # print(f"Thread results: {results[:]}")
+    # sum = results[0] + results[2]
+    # count = results[1] + results[3]
+    # print(f"Average: {sum} / {count} = {sum / count}")
+    # print(f"Computation finished")
+
+# Uncomment to run
+# if __name__ == "__main__":
+#     freeze_support()
+#     average_numbers_pipeline_parallelism()
 
 """
 What do these types of parallelism look like on a real pipeline
@@ -760,38 +930,86 @@ Pipeline parallelism:
 
 Task parallelism:
 
-Which of these is most important?
+Which of these is most important in the real world?
 (Hint: it's not a close contest)
+
 A:
 """
 
 """
 === Quantifying parallelism ===
 
-Another way to think about parallelism:
-What amount of parallelism is available in a system?
+We know how to tell *if* there's parallelism.
+What about *how much*?
+
+    i.e.: What amount of parallelism is available in a system?
+
+Definition:
+**Speedup** is...
 
 Amdahl's law:
 https://en.wikipedia.org/wiki/Amdahl%27s_law
 
+Amdahl's law gives an upper bound on the amount of speedup that is possible for any task.
+
 === Standard form of the law ===
 
+Suppose we have a computation that exhibits one or more types of parallelism.
+The amount of speedup in a computation is at most
 
+    1 / (1 - p)
+
+where:
+
+    p is ....
 
 === Example with a simple task ===
 
+We have written a complex combination of C and Python code to train our ML model.
+95% of the code can be fully parallelized, however there is a 5% of the time of the code
+that is spent parsing the input model file and producing as output an output model file
+that we have determined cannot be parallelized.
 
-
-This applies to distributed computations as well!
+Q: What is the maximum speedup for our code?
 
 === Alternate form ===
 
+Here is an alternative form of the law that is equivalent, but sometimes a bit more useful.
+Let:
+- T be the total amount of time to complete a task
+- S be the amount of time to compute some inherently sequential portion of the task
 
+Then the maximum speedup of the task is at most
 
-=== Example with two tables ===
+    (T / S).
 
-Let's start with a simple example:
-we have two tables, of employee names and employee salaries.
+Note: this applies to distributed computations as well!
+
+=== More examples ===
+
+1. Let's take our data parallelism example:
+- imagine an SQL query where you need to match
+  the employee name with their salary and produce a joined table
+  (join on name_table and salary_table)
+
+Assume that all operations take 1 unit of time per row.
+
+Q: What is the maximum speedup here?
+
+2. average_numbers example
+
+Our average_numbers example is slightly more complex than above as it involves an aggregation
+(group-by).
+Aggregation can be parallelized.
+    (Why? What type of parallelism?)
+
+For the purposes of Amdahl's law, we can think of aggregation as requiring at least 1 operation
+(1 unit of time to compute the total).
+
+Q: What is the maximum speedup here?
+
+3. An extended version of the table join example.
+We have two tables, of employee names and employee salaries.
 We want to compute which employees make more than 1 million Euros.
 The employee salaries are listed in dollars.
 
@@ -806,26 +1024,25 @@ average_numbers pipeline?
 """
 
 """
-Some TODOs:
+Let's also connect Amdahl's law back to throughput & latency.
 
-1. Rephrase in terms of running time
+1. Rephrase in terms of throughput
 
-2. Rephrase in terms of throughput
-
-3. Rephrase in terms of latency
+2. Rephrase in terms of latency
 """
 
 """
 === Parallelizing our code in Pandas? ===
 
-We don't want to parallelize by hand! (why? See problems with concurrency above)
+We don't want to parallelize our code by hand.
+(why? See problems with concurrency from last week!)
 
 Dask is a simple library that works quite well for parallelizing datasets
 on a single machine as a drop-in replacement for Pandas.
 """
 
 # conda install dask or pip3 install dask
-# import dask
+import dask
 
 def dask_example():
     # Example dataset
@@ -853,7 +1070,7 @@ def dask_example():
 # dask_example()
 
 """
-=== End note: vertical vs. horizontal scaling ===
+=== A final definition and end note: Vertical vs. horizontal scaling ===
 
 - Vertical: scale "up" resources at a single machine (hardware, parallelism)
 - Horizontal: scale "out" resources over multiple machines (distribution)
@@ -873,6 +1090,10 @@ This also gives us a convenient way to think about data pipelines
 in general, and visualize them.
 We will tour PySpark in the next lecture.
 
+Everything we have said about identifying and quantifying parallelism also applies to
+distributing the code (for the most part -- we will only see exceptions to this if we cover
+distributed consistency issues and faults and crashes, this is an optional topic that we will
+get to only if we have time.)
 In addition to scaling even further, distribution can offer an even
 more seamless performance compared to parallelism as it can eliminate
 many coordination overheads and contention between workers
