@@ -150,9 +150,9 @@ def average_numbers(N):
     return sum / count
 
 # Uncomment to run:
-# N = 200_000_000
-# result = average_numbers(N)
-# print(f"Result: {result}")
+N = 200_000_000
+result = average_numbers(N)
+print(f"Result: {result}")
 
 # baseline (Sequential performance) is at 6.7s
 
@@ -830,30 +830,76 @@ A Python script needs to:
 https://forms.gle/bfbjmwhJHgWqRRux8
 https://tinyurl.com/5kvanhwv
 
+Visual aid (we'll come back to this very soon in lecture 5!)
+
+    Draw out the tasks your pipeline needs to compute as nodes, and the dependencies
+    between them as arrows between the nodes. 
+
+    (load dataset) -> (calculate a new column) -> (send email to each student)
+
+    (This is called a dataflow graph)
+
+    Data parallelism exists if a single node in the pipeline can be done in parallel over
+    its input dataset. 
+
+    Task parallelism exists if there are two nodes that can be run in parallel without a dependency
+    between them.
+
+    Pipeline parallelism exists if there are two nodes that can be run in parallel with an arrow
+    between them. 
+
 === Exercises ===
 
 Exercise: Let's write some actual code.
 
 1. Write a version of our average_numbers pipeline that exploits task parallelism.
 
+
+
 2. Write a version of our average_numbers pipeline that exploits pipeline parallelism.
     (This one will be a bit more contrived)
+
+    We should have one worker produce as input the integers,
+    and one worker process those integers!
 
 We will start with a skeleton of our code from the concurrent example.
 """
 
 def worker5(results):
-    # TODO: fill in worker 5
-    raise NotImplementedError
+    sum = 0
+    count = 0
+    for i in range(N // 2, N):
+        sum += i
+        count += 1
+
+        # Super race-y version
+        # results[0] += sum
+        # results[1] += count
+
+    print(f"Worker 4 result: {sum} {count}")
+    # Save the results in the shared results array
+    results[2] += sum
+    results[3] += count
+
 
 def worker6(results):
     # TODO: fill in worker 6
     raise NotImplementedError
 
+"""
+
+**pictoral model** (dataflow graph)
+
+    (input) -> (sum)
+                                --> (compute average)
+    (input) --> (count)
+
+"""
+
 def average_numbers_task_parallelism():
     # Create a shared results array
     # i = integer, d = double (we use d here because the integers suffer from overflow)
-    results = Array('d', range(2))
+    results = Array('d', range(20))
 
     # Iniitalize our shared array
     results[0] = 0
@@ -883,11 +929,35 @@ def average_numbers_task_parallelism():
 
 def worker7(results):
     # TODO: fill in worker 7
-    raise NotImplementedError
+
+    # in our case, loading just means oing through a python range
+    # and then putting it in a shared array
+    # raise NotImplementedError
+
+    for i in range(N):
+        reuslts[0] = i
+    print("worker 1 complete")
 
 def worker8(results):
     # TODO: fill in worker 8
-    raise NotImplementedError
+    # we need to read the output from worker 7
+
+    # warning: the following is not really 
+    i = 0
+    sum = 0
+    while i < N:
+        if results[i] == -1:
+            continue
+        else:
+            sum += i
+            count += 1
+    print(f"Thread results: {results[:]}")
+    sum = results[0] + results[2]
+    count = results[1] + results[3]
+    print(f"Average: {sum} / {count} = {sum / count}")
+    print(f"Computation finished")
+    
+
 
 def average_numbers_pipeline_parallelism():
     # Create a shared results array
@@ -945,7 +1015,7 @@ What about *how much*?
     i.e.: What amount of parallelism is available in a system?
 
 Definition:
-**Speedup** is...
+**Speedup** is (running time of sequential code) / (running time of parallel code)
 
 Amdahl's law:
 https://en.wikipedia.org/wiki/Amdahl%27s_law
