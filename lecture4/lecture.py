@@ -212,8 +212,6 @@ def run_in_parallel(*tasks):
 # **************************************
 # **************************************
 
-N = 200_000_000
-
 def worker1():
     sum = 0
     count = 0
@@ -237,6 +235,7 @@ def average_numbers_parallel():
     print(f"Computation finished")
 
 # Uncomment to run
+# N = 200_000_000
 # if __name__ == '__main__':
 #     freeze_support() # another boilerplate line to ignore
 #     average_numbers_parallel()
@@ -332,9 +331,6 @@ Exercises:
 Modify our example to keep track of an output.
 """
 
-# Redefine N -- modify here as needed
-N = 1000
-
 # Shared memory between the processes
 # Shared list for results
 # this has to be a special Array instead of a Python
@@ -350,10 +346,6 @@ def worker3(results):
         sum += i
         count += 1
 
-        # Super race-y version
-        # results[0] += i
-        # results[1] += 1
-
     print(f"Worker 3 result: {sum} {count}")
     # Save the results in the shared results array
     results[0] += sum
@@ -365,10 +357,6 @@ def worker4(results):
     for i in range(N // 2, N):
         sum += i
         count += 1
-
-        # Super race-y version
-        # results[0] += sum
-        # results[1] += count
 
     print(f"Worker 4 result: {sum} {count}")
     # Save the results in the shared results array
@@ -395,13 +383,15 @@ def average_numbers_concurrent():
     p2.join()
 
     # Calculate results
-    print(f"Thread results: {results[:]}")
+    # print(f"Worker results: {results[:]}")
     sum = results[0] + results[2]
     count = results[1] + results[3]
     print(f"Average: {sum} / {count} = {sum / count}")
     print(f"Computation finished")
 
 # Uncomment to run
+# Define N -- modify here as needed
+# N = 1_000_000
 # if __name__ == "__main__":
 #     freeze_support()
 #     average_numbers_concurrent()
@@ -427,7 +417,61 @@ Answer: it seems to work!
 What do you think would happen if we modified the example to use the shared
 results list directly for each worker's local variables?
 (Let's try it)
+"""
 
+# Super race-y version of worker 3 -- don't do this!
+def worker3_racey(results):
+    for i in range(N // 2):
+        # print(f"Worker 3 loop: {i}")
+        results[0] += i
+        results[1] += 1
+
+    print(f"Worker 3 complete")
+
+# Super race-y version of worker 4
+def worker4_racey(results):
+    for i in range(N // 2, N):
+        # print(f"Worker 4 loop: {i}")
+        results[0] += i
+        results[1] += 1
+
+    print(f"Worker 4 complete")
+
+# Super race-y version of main process
+def average_numbers_racey():
+    print(f"N = {N}")
+
+    # Create a shared results array
+    # i = integer, d = double (we use d here because the integers suffer from overflow)
+    results = Array('d', range(2))
+
+    # Iniitalize our shared array
+    results[0] = 0
+    results[1] = 0
+
+    # Like run_in_parallel but with added code to handle arguments
+    p1 = Process(target=worker3_racey, args=(results,))
+    p2 = Process(target=worker4_racey, args=(results,))
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
+
+    # Calculate results
+    # print(f"Worker results: {results[:]}")
+    sum = results[0]
+    count = results[1]
+    print(f"Average: {sum} / {count} = {sum / count}")
+    print(f"Computation finished")
+
+# Uncomment to run
+# Define N -- modify here as needed
+# N = 1_000_000
+# if __name__ == "__main__":
+#     freeze_support()
+#     average_numbers_racey()
+
+"""
 Does something go wrong?
 
     Contention:
@@ -809,9 +853,6 @@ Exercise: Let's write some actual code.
 We will start with a skeleton of our code from the concurrent example.
 """
 
-# Redefine N again
-N = 100_000_000
-
 def worker5(results):
     sum = 0
     for i in range(N):
@@ -833,6 +874,7 @@ def worker6(results):
                          --> (compute average)
     (input) --> (count)
 """
+
 def average_numbers_task_parallelism():
     # Create a shared results array
     # i = integer, d = double (we use d here because the integers suffer from overflow)
@@ -857,6 +899,8 @@ def average_numbers_task_parallelism():
     print(f"Computation finished")
 
 # Uncomment to run
+# Redefine N again
+# N = 100_000_000
 # if __name__ == "__main__":
 #     freeze_support()
 #     average_numbers_task_parallelism()
@@ -870,9 +914,6 @@ If we want to exploit pipeline parallelism...
     we should have one worker produce as input the integers,
     and one worker process those integers!
 """
-
-# Redefine N again
-N = 1_000_000
 
 def worker7(results):
     # Worker 7 is responsible for loading the input
@@ -934,9 +975,10 @@ def average_numbers_pipeline_parallelism():
     print("Computation finished.")
 
 # Uncomment to run
-if __name__ == "__main__":
-    freeze_support()
-    average_numbers_pipeline_parallelism()
+# N = 1_000_000
+# if __name__ == "__main__":
+#     freeze_support()
+#     average_numbers_pipeline_parallelism()
 
 """
 It works!
@@ -1005,50 +1047,163 @@ Amdahl's law gives an upper bound on the amount of speedup that is possible for 
 ***** End here for Oct 30. *****
 ===============================================
 
+=== Nov 1 ===
+
+Continuing: quantifying parallelism in your pipeline
+
+We're interested in knowing: how much speedup is possible?
+
+Amdahl's law gives us a theoretical upper bound on the amount of speedup
+that is possible (in arbitrary code, but also applying specifically
+to data processing code).
+
 === Standard form of the law ===
 
 Suppose we have a computation that exhibits one or more types of parallelism.
 The amount of speedup in a computation is at most
 
-    1 / (1 - p)
+    Speedup <= 1 / (1 - p)
 
 where:
 
-    p is ....
+    p is the percentage of the task (in running time) that can be parallelized.
 
 === Example with a simple task ===
 
 We have written a complex combination of C and Python code to train our ML model.
+Based on profiling the code, we believe that
 95% of the code can be fully parallelized, however there is a 5% of the time of the code
 that is spent parsing the input model file and producing as output an output model file
 that we have determined cannot be parallelized.
 
 Q: What is the maximum speedup for our code?
 
+Applying Amdahl's law:
+
+    p = .95
+
+    Speedup <= 1 / (1 - .95) = 1 / .05 = 20x.
+
+Example: the best we can get is from 100 hours to 5 hours, a 20x speedup.
+
 === Alternate form ===
 
 Here is an alternative form of the law that is equivalent, but sometimes a bit more useful.
 Let:
-- T be the total amount of time to complete a task
+- T be the total amount of time to complete a task sequentially
+  (without any parallelism)
+  (in our example: 100 hours)
+
 - S be the amount of time to compute some inherently sequential portion of the task
+    --> We don't believe it's possible to do any part of S in parallel
+  (in our example: 5 hours)
 
 Then the maximum speedup of the task is at most
 
-    (T / S).
+    speedup <= (T / S) = 100 hours / 5 hours = 20x.
 
 Note: this applies to distributed computations as well!
 
-=== More examples ===
+This is giving a theoretical upper bound, not taking into account
+other overheads (for example, it doesn't take into account
+communication overhead between threads, processes or distributed devices).
+
+=== Example ===
 
 1. Let's take our data parallelism example:
 - imagine an SQL query where you need to match
   the employee name with their salary and produce a joined table
   (join on name_table and salary_table)
 
-Assume that all operations take 1 unit of time per row.
+Assume that all operations take 1 second per row:
+    - 1 second to load each input row rom name_table
+    - 1 second to load each input row from salary_table
+    - 1 second to join -- per row in the joined table
+
+Also assume that there are 100 employees in name_table,
+100 in salary_table, and 100 in the joined table.
 
 Q: What is the maximum speedup here?
 
+    speedup <= (T / S)
+
+    What are T and S?
+
+    T = ?
+        201?
+        300s =
+            100s to load first table
+            100s to load second table,
+            100s to calculate joined table.
+
+    with no parallelism!
+
+    S = what cannot be parallelized?
+        Joining the two tables?
+        How can we take into account data parallelism?
+        Idea: Once both tables are loaded, I should be able to join
+            different rows in parallel.
+
+            If I have all the computational resources in the world,
+            I could send each employee to its own worker.
+            I should then be able to join all the values associated
+            with each worker individually -- different
+            employees are processed in parallel.
+
+    Let's draw a data flow graph again of our tasks:
+
+    (load table 1)
+                    --> (join tables)
+    (load table 2)
+
+    What's the minimum bundle of computation that I can't process in
+    parallel?
+
+    Imagine a specific employee A:
+
+    - I have to load table 1, row corresponding to A (1s)
+    - I have to load table 2, row corresponding to A (1s)
+    - I have to compute joined table, row corresponding to A (1s)
+
+    Minimum time is 2 seconds!
+
+    Therefore:
+
+        Speedup <= T / S = 300 / 2 = 150x.
+
+
+    Note:
+    You can think of this as the limit as number of cores/processes
+    goes to infinity.
+
+    There's a version of the law that takes this into account.
+
+    T = time it takes to complete with 1 worker
+    S = time it takes to complete the task with a theoretically infinite number of workers and no cost of overhead when communicating between workers.
+
+=== Poll ===
+
+Use Amdahl's law to estimate the maximum speedup in the following scenario.
+
+As in Wednesday's poll, a Python script needs to:
+- load a dataset into Pandas: students.csv, with 100 rows
+- calculate a new column which is the total course load for each student
+- send an email to each student with their total course load
+
+Assume that it takes 1 ms (per row) to read in each input row, 1 ms (per row) to calculate the new column, and 1 ms (per row) to send an email.
+
+Q: What is the theoretical bound on the maximum speedup in the pipeline?
+
+https://forms.gle/JrnevTyVbxFzuFzq9
+
+    T = 300 ms
+    S = 3 ms
+
+    Speedup <= 100x
+
+=== More examples ===
+
+(Skip)
 2. average_numbers example
 
 Our average_numbers example is slightly more complex than above as it involves an aggregation
@@ -1079,9 +1234,21 @@ average_numbers pipeline?
 """
 Let's also connect Amdahl's law back to throughput & latency.
 
-1. Rephrase in terms of throughput
+Given T and S...
 
-2. Rephrase in terms of latency
+1. Rephrase in terms of throughput:
+
+    If there are N input items, then the _maximum_ throughput is
+
+    throughput <= (N / S)
+
+2. Rephrase in terms of latency:
+
+    Assuming we care about latency for the whole task
+    (not just a single item), the _minimum_ latency is
+
+    latency >= S.
+
 """
 
 """
@@ -1101,7 +1268,7 @@ def dask_example():
     # Example dataset
     df = dask.datasets.timeseries()
 
-    # Dask is lazy -- it only generates data when you ask it to.
+    # Dask is "lazy" -- it only generates data when you ask it to.
     # (More on laziness later).
     print(type(df))
     print(df.head(5))
@@ -1118,6 +1285,9 @@ def dask_example():
 
     # Compute results -- this processes the whole dataframe
     print(df3.compute())
+
+# If you just want parallelism on a single machine,
+# Dask is a great lightweight solution.
 
 # Uncomment to run.
 # dask_example()
