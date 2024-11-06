@@ -10,6 +10,8 @@ Announcements:
   Worth 1 point of extra credit if completed.
   (Make sure you fill out the second form, link available after the first one is completed, to get the extra credit.)
 
+  Due Thursday.
+
   Please do fill it out! I appreciate all of your feedback and
   use it to make changes (both this year and next year).
   This is especially helpful as this is a new course and much
@@ -24,6 +26,15 @@ Announcements:
   In our testing: takes about 35 minutes (so you should have enough time!)
 
   Study topic list: start of class today.
+  Study questions: go over the in-class polls!
+
+  Midterm is o closed-book, on paper!
+
+  You are allowed a one-sided cheat sheet.
+  Handwritten or typed is OK.
+
+  No questions that ask you to hand-write code
+  (concepts, not syntax)
 
 Questions?
 
@@ -36,3 +47,34 @@ Plan:
 - Scalable collection types
 
 - Programming over collection types with distributed data pipelines.
+
+## Nov 5
+
+Announcements:
+
+- Midterm on Friday
+
+    + My office hours are moved to tomorrow, Thursday 430-530pm.
+
+    + Poll question answers: poll_answers.md
+
+    + I will reserve 5-10 minutes at the start of class to help with any study/review questions.
+
+- Thank you to those of you who have filled out the mid-quarter survey so far!
+    Your answers have been super helpful.
+    If you haven't yet, please fill it out!
+    Survey open through EOD tomorrow.
+
+Plan:
+
+- Start with the poll
+
+- Recap on scalable collection types
+
+    + comparison between Python collections and scalable collections
+
+- RDD fundamentals: laziness, wide/narrow operators, partitioning
+
+- A second scalable collectoin type: DataFrames
+
+- MapReduce and how Spark works under the hood.
