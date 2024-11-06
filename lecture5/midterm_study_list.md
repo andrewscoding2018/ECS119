@@ -4,6 +4,8 @@ Study list of topics for the midterm.
 
 **The midterm will cover Lectures 1-4.**
 
+One sided cheat sheet. 
+
 ## Lecture 1 (Introduction to data processing)
 
 - Python classes, functions, modules, unit tests

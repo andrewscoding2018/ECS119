@@ -838,7 +838,7 @@ Visual aid (we'll come back to this very soon in lecture 5! Helpful way to think
     (This is something called a dataflow graph)
 
     Data parallelism exists if a single node in the pipeline can be done in parallel over
-    its inputs
+    its inputs  
 
     Task parallelism exists if there two nodes that can be run in parallel without an arrow between them
 

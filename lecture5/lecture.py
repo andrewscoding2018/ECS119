@@ -95,7 +95,8 @@ https://forms.gle/Vxfw7x5GQgnaetbz9
 
 What is a scalable collection type?
 
-A:
+A: "Scalable" part means that the collection is automatically distributed
+and parallelized over many different workers. 
 
 Basic scalable collection types in Spark:
 
