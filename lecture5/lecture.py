@@ -203,7 +203,27 @@ and finds only the integers x such that x * x is exactly 3 digits...
 - .map
 - .filter
 - .collect
+"""
 
+def ex1_python(l1):
+    l2 = map(lambda x: x * x, l1)
+    l3 = filter(lambda x: 100 <= x * x <= 999, l2)
+    print(list(l2), list(l3))
+    # raise NotImplementedError
+
+INPUT_EXAMPLE = range(0, 10)
+ex1_python(INPUT_EXAMPLE)
+
+def ex1_rdd(l1):
+    l1 = sc.parallelize(l1)
+    l2 = l1.map(lambda x: x * x)
+    l3 = l2.filter(lambda x: 1 <= x <= 9)
+    print(l3.collect())
+
+ex1_rdd(INPUT_EXAMPLE)
+
+
+"""
 2.
 Write a function
 a) in Python
@@ -216,21 +236,18 @@ and adds up all the even integers and all the odd integers
 - .partitionBy
 """
 
-def ex1_python(list):
-    # TODO
-    raise NotImplementedError
 
-def ex1_rdd(list):
-    # TODO
-    raise NotImplementedError
+# def ex2_python(l1):
+    
 
-def ex2_python(list):
-    # TODO
-    raise NotImplementedError
 
-def ex2_rdd(list):
-    # TODO
-    raise NotImplementedError
+def ex2_rdd(l1):
+    l2 = sc.parallelize(l1)
+    l3 = l2.groupBy(lambda x: x % 2)
+    l4 = l3.reduce(lambda x: x + x)
+    print(l4.collect())
+
+# ex2_rdd(INPUT_EXAMPLE)
 
 """
 Good! But there's one thing left -- we haven't really measured
