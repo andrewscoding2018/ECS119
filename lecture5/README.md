@@ -48,7 +48,7 @@ Plan:
 
 - Programming over collection types with distributed data pipelines.
 
-## Nov 5
+## Nov 6
 
 Announcements:
 
@@ -56,14 +56,14 @@ Announcements:
 
     + My office hours are moved to tomorrow, Thursday 430-530pm.
 
-    + Poll question answers: poll_answers.md
-
     + I will reserve 5-10 minutes at the start of class to help with any study/review questions.
+
+    + Poll question answers: poll_answers.md
 
 - Thank you to those of you who have filled out the mid-quarter survey so far!
     Your answers have been super helpful.
     If you haven't yet, please fill it out!
-    Survey open through EOD tomorrow.
+    Survey (+EC) open through EOD tomorrow.
 
 Plan:
 
@@ -78,3 +78,39 @@ Plan:
 - A second scalable collectoin type: DataFrames
 
 - MapReduce and how Spark works under the hood.
+
+## Nov 15
+
+Welcome back!
+
+Announcements:
+
+- Midterm is graded, and grades will be released after class today
+
+  I am happy with how everyone did overall!
+  There were a couple of questions I noticed we could have spent more time in class going over
+  the techniques, which I will spend more time on going forward.
+
+- Piazza thread for Wednesday's makeup reading: https://piazza.com/class/m12ef423uj5p5/post/119
+
+- Thank you for the feedback from the mid-quarter survey:
+
+  + Some of you noted that HW1 was long and would prefer shorter assignments released at larger time intervals
+
+  + Stay tuned for an announcement about this on Monday.
+
+Lecture plan:
+
+- Start with the poll
+
+- Fundamental properties of RDDs:
+  + laziness (transformation/action distinction),
+  + partitioning (wide/narrow distinction)
+
+- Recap on distributed pipelines and dataflow graphs
+
+- MapReduce
+
+- DataFrames
+
+We will finish up Lecture 5 today and Monday.
