@@ -613,13 +613,17 @@ One last property (an important one!): Partitioning
 
 === Partitioning ===
 
-Partitioning is what makes RDDs scalable.
+Whenever we consruct an RDD, under the hood it is going to be partitioned
+into several chunks or subsets of the data; these could be all stored on the same machine,
+or they could be stored on separate distributed machines.
+
+Partitioning is what makes RDDs a scalable collection type.
 It's data parallelism.
 
 How does partitioning work?
 
 ----> Under the hood, all datasets and intermediate outputs are partitioned
-into groups which can be processed independently.
+      into groups which can be processed independently.
 
 Useful operations to see what's going on:
 
@@ -629,19 +633,40 @@ Useful operations to see what's going on:
 Let's revisit our example:
 """
 
-def show_partitions(data):
+def show_partitions(data, num_partitions=None):
 
     # Parallelize as before
-    rdd = sc.parallelize(data.values())
+    if num_partitions is None:
+        rdd = sc.parallelize(data.values())
+    else:
+        rdd = sc.parallelize(data.values(), num_partitions)
 
     # Show the partitioning details
     print(f"Number of partitions: {rdd.getNumPartitions()}")
     print("Inspect partitions:")
     for part in rdd.glom().collect():
+        # What glom does: it takes each partition for example partition 1, 2, 3, 4, 5
+        # And it effectively adds a coordinate to each input data item that indicates the partition #.
+        # After we do a glom we can do a collect and then explicitly iterate through the partitions.
+
+        # In short: It allows to view the partitions.
+
+        # Print the partition
         print(f"Partition: {part}")
 
 # Uncomment to run
 # show_partitions(CHEM_DATA)
+
+"""
+What numbers did we get?
+- I got 12 -- my machine has 12 cores
+
+Other people got?
+- 8
+
+In this case, all partitions are on the same machine (my laptop),
+but in general they could be split accross several machines.
+"""
 
 """
 We can also control the number of partitions and the way data is partitioned
@@ -653,11 +678,13 @@ Syntax:
 
 # Exercise: update the above to also control the number of partitions as an optional
 # parameter, then print
-# show_partitions(CHEM_DATA, 10)
-# show_partitions(CHEM_DATA, 5)
 # show_partitions(CHEM_DATA, 1)
+# show_partitions(CHEM_DATA, 5)
+# show_partitions(CHEM_DATA, 10)
 
 """
+So far: we know (1) how to inspect the partitions (2) how to change the number of partitions.
+
 === Why partitioning matters! ===
 
 We said that scalable collections should behave just like ordinary collections!
@@ -680,8 +707,11 @@ A friend of mine who worked as a data/ML engineer told me the following story:
 (Dataproc is Google Cloud's framework for running Spark and other distributed
 data processing tasks: https://cloud.google.com/dataproc)
 
-In an ideal world, we wouldn't worry about partitioning, but sometimes
-partitioning differently can drastically help improve the performance of our pipeline.
+Moral of the story:
+In an ideal world, we wouldn't worry about partitioning,
+if the number of partitions created is wildly off from the
+size of the data set (too small or too large), it could have severe impacts
+on performance.
 
 ----> Side note: Even worse, partitioning might affect the
       outputs that you get. This shouldn't happen unless you wrote your pipeline
@@ -692,6 +722,9 @@ Review Q:
 Why does partitioning affect pipeline scheduling and performance?
 
 A:
+It controls the amount of data parallelism in the pipeline
+Too little data parallelism, and we don't benefit from parallelism
+Too much, and we might have severe/large overheads from creating and managing all the partitions.
 
 === Two types of operators (again) ===
 
@@ -702,56 +735,58 @@ The basic question is what happens when we chain together two operators?
 EXAMPLE:
 Dataflow graph:
 
-    (input data) ---> (filter) ---> (map) ---> (stats)
+    (load input data) ---> (filter) ---> (map) ---> (stats)
 
 Q:
-Suppose there are two partitions for each stage.
+Suppose there are two partitions for each task.
 If we draw one node per partition, instead of one node per task,
 what dataflow graph would we get?
 
 A (class input):
 
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
-.
+    (load input data, 1st half) ---> (filter, 1st half) ---> (map, 1st half)
+                                                                             ----->
+                                                                                    (stats)
+                                                                             ----->
+    (load input data, 2nd half) ---> (filter, 2nd half) ---> (map, 2nd half)
+
+(Data parallelism, previously implicit, has now been explicitly represented as task parallelism.)
+
+(This process is what Spark does underneath the hood:
+    automatically parallelizing, or "autoparallelizing" the input graph.)
 
 The two types of operators are revealed!
 
 In addition to being divided into actions and transformations,
 RDD operations are divided into "narrow" operations and "wide" operations.
 
+Definitions:
+
+    Narrow = works on individual partitions only
+
+    Wide = works across partitions.
+
 Image:
 
     narrow_wide.png
     (Credit: LinkedIn)
 
-Definitions:
+We saw partitioning and that it gives rise to narrow/wide operators,
+and what it does to the input data flow graph.
 
-    Narrow = ...
+We'll pick this up on Wednesday.
 
-    Wide = ...
+========================================================
+
+=== Wed Nov 20 ===
+
+=== Poll ===
+
+Consider the following scenario where a temperature dataset is partitioned in Spark across several locations. Which of the following tasks on the input dataset could be done with a narrow operator, and which would require a wide operator?
+
+https://forms.gle/bex7HBzRSd6824TM9
+
+=== Finishing up narrow and wide ===
 
 Let's use the definitions above to classify all the operations in our example pipelines above
 into narrow and wide.
@@ -790,15 +825,13 @@ A little picture:
   |
   MapReduce
 
-Let's start with DataFrames
-
 === DataFrame ===
 
-(Will probably skip most of this for time)
+(Will probably skip some of this for time)
 
 Our second example of a collection type is DataFrame.
 
-DataFrame is kind of like a Pandas DataFrame.
+DataFrame is like a Pandas DataFrame.
 
 https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.html
 
@@ -814,12 +847,90 @@ We can also create one from an RDD by doing
 """
 
 def ex_dataframe(data):
-    # TODO:
-    # Load the CHEM_DATA and turn it into a DataFrame, then collect it
-    raise NotImplementedError
+    # Load the data (CHEM_DATA) and turn it into a DataFrame
+
+    # A few ways to do this
+
+    """
+    Method 1: directly from the RDD
+    """
+    rdd = sc.parallelize(data.values())
+    df1 = rdd.map(lambda x: (x,)).toDF()
+
+    # Breakpoint for inspection
+    # breakpoint()
+
+    # Try: df.show()
+
+    # What happened?
+
+    # Not very useful! Let's try a different way.
+    # Our lambda x: (x,) map looks a bit sus. Does anyone see why?
+
+    """
+    Method 2: unpack the data into a row more appropriately by constructing the row
+    """
+    # don't need to do the same thing again -- RDDs are persistent and immutable!
+    # rdd = sc.parallelize(data.values())
+    df2 = rdd.map(lambda x: (*x,)).toDF()
+
+    # Breakpoint for inspection
+    # breakpoint()
+
+    # What happened?
+
+    # Better!
+
+    """
+    Method 3: create the DataFrame directly with column headers
+    (the correct way)
+    """
+
+    # What we need (similar to Pandas): list of columns, iterable of rows.
+
+    # For the columns, use our CHEM_NAMES list
+    columns = ["chemical"] + CHEM_NAMES[1:]
+
+    # For the rows: can use [] or a generator expression ()
+    rows = ((name, *(counts[1:])) for name, counts in CHEM_DATA.items())
+
+    df3 = spark.createDataFrame(rows, columns)
+
+    # Breakpoint for inspection
+    # breakpoint()
+
+    # What happened?
+
+    # Now we don't have to worry about RDDs at all. We can use all our favorite DataFrame
+    # abstractions and manipulate directly using SQL operations.
+
+    # Adding a new column:
+    from pyspark.sql.functions import col
+    df3 = df3.withColumn("H + C", col("H") + col("C"))
+
+    df3 = df3.withColumn("H + F", col("H") + col("F"))
+
+    breakpoint()
+
+    # We could continue this example further (showing other Pandas operation equivalents).
+
+# Uncomment to run
+ex_dataframe(CHEM_DATA)
+
+"""
+One more thing about DataFrames: revisiting the web interface
+and .explain():
+
+localhost:4040/
+
+.explain()
+
+.explain("extended")
+"""
 
 """
 Another misc. DataFrame example:
+(skip for time, feel free to uncomment and play with it offline)
 """
 
 # people = spark.createDataFrame([
@@ -847,6 +958,9 @@ Another misc. DataFrame example:
 # print(result)
 
 """
+So we know how to work with DataFrames, once we do that, we don't have to worry about RDDs
+at all. We get nice SQL abstractions.
+
 What is the "magic" behind how Spark works?
 
 === MapReduce ===
@@ -861,7 +975,9 @@ Exercise: Let's create our own MapReduce pipeline functions.
 
 PySpark functions:
 - .map
+https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.RDD.map.html
 - .fold
+https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.RDD.fold.html
 """
 
 def map(rdd, f):
@@ -884,6 +1000,12 @@ def get_total_fluorines(data):
 
 # Uncomment to run
 # get_total_fluorines(CHEM_DATA)
+
+# Note:
+# We could also .collect() and then .parallelize the results after the
+# map stage if we wanted to simulate completing the results of the Map stage
+# and reshuffling prior to getting to the Reduce stage. Many MapReduce implementations
+# work this way.
 
 """
 === Some history ===
@@ -926,7 +1048,29 @@ A:
 
 But doesn't optimizing for throughput always optimize for latency? Not necessarily!
 
-A simple example of this is given below in the "Understanding latency" section.
+Let's talk a little bit about latency...
+
+=== Understanding latency (intuitive) ===
+
+This is related to the last question on Q10 of the midterm.
+
+A more intuitive real-world example:
+imagine a restaurant that has to process lots of orders.
+
+- Throughput is how many orders we were able to process per hour.
+
+- Latency is how long *one* person waits for their order.
+
+These are not the same! Why not? Two extreme cases:
+
+1.
+
+2.
+
+A more abstract example of this is given below in the "Understanding latency (abstract)" section
+below.
+
+=== Summary: disadvantages of Spark ===
 
 Latency is about optimizing response time *per each individual input row.*
 
@@ -942,13 +1086,12 @@ That's why there is a tradeoff
 between throughput and latency.
 If we always wanted the best latency, we would always ask for the results right away.
 
-From "The 8 Requirements of Real-Time Stream Processing":
-
     "To achieve low latency, a system must be able to perform
     message processing without having a costly storage operation in
     the critical processing path...messages should be processed “in-stream” as
     they fly by."
 
+    From "The 8 Requirements of Real-Time Stream Processing":
     Mike Stonebraker, Ugur Çetintemel, and Stan Zdonik
     https://cs.brown.edu/~ugur/8rulesSigRec.pdf
 
@@ -962,14 +1105,10 @@ We'll use a different API in Spark called Spark Streaming.
 """
 
 """
-=== Understanding latency ===
-(time permitting)
+=== Understanding latency (abstract) ===
+(review if you are interested in a more abstract view)
 
 Why isn't optimizing latency the same as optimizing for throughput?
-
-This is related to the last question on Q10 of the midterm.
-It wasn't entirely clear to everyone what I meant by latency on a "single input"
-vs. the "entire input dataset", so let me clarify.
 
 First of all, what is latency?
 Imagine this. I have 10M inputs, my pipeline processes 1M inputs/sec (pretty well parallelized.
