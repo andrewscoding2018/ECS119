@@ -794,10 +794,13 @@ Let's use the definitions above to classify all the operations in our example pi
 into narrow and wide.
 
 Narrow:
--
+- map
+- filter
 
 Wide:
--
+- needs some aggregation
+
+
 """
 
 """
@@ -859,6 +862,8 @@ def ex_dataframe(data):
     rdd = sc.parallelize(data.values())
     df1 = rdd.map(lambda x: (x,)).toDF()
 
+
+    df1 = rdd.map(lambda x: (x,)).toDF()
     # Breakpoint for inspection
     # breakpoint()
 
@@ -912,7 +917,7 @@ def ex_dataframe(data):
 
     df3 = df3.withColumn("H + F", col("H") + col("F"))
 
-    breakpoint()
+    # breakpoint()
 
     # We could continue this example further (showing other Pandas operation equivalents).
 
