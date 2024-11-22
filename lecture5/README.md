@@ -148,6 +148,8 @@ Announcements:
 
 - Regrade requests (midterm and HW1): deadline in one week, EOD on Wed, Nov 27.
 
+Questions?
+
 Plan:
 
 - In-class poll, wrap up wide/narrow
@@ -158,4 +160,24 @@ Plan:
 
 - Endnote on Spark (benefits and drawbacks)
 
-Questions?
+## Nov 22
+
+Announcements:
+
+- Reminder: regrade requests are due Wed, Nov 27.
+
+  For how to submit, see: https://piazza.com/class/m12ef423uj5p5/post/129
+
++ I am working on HW2, will release Part 1 soon.
+
+Plan:
+
+- MapReduce recap
+
+- Poll
+
+- MapReduce, fully general case
+
+- Some MapReduce exercises
+
+- Endnote on Spark (benefits and drawbacks).

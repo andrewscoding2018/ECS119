@@ -411,7 +411,7 @@ CHEM_DATA = {
     "nitrogen": [0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0],
     # CO2
     "carbon dioxide": [0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0],
-    # C4H
+    # CH4
     "methane": [0, 4, 0, 0, 0, 0, 1, 0, 0, 0, 0],
     # C8 H F15 O2
     "PFOA": [0, 1, 0, 0, 0, 0, 8, 0, 2, 15, 0],
@@ -792,10 +792,17 @@ Let's use the definitions above to classify all the operations in our example pi
 into narrow and wide.
 
 Narrow:
--
+- map
+- filter
 
 Wide:
--
+- total avg
+- total count
+- stddev
+- etc.
+- globally unique / distinct elements
+- anything where you need to communicate across partitions.
+
 """
 
 """
@@ -811,6 +818,9 @@ Implementation and optimization details:
 - .cache()
 - .persist()
 - .checkpoint()
+
+These can be more important if you are worried about performance,
+or crashes/failures and other distributed concerns.
 """
 
 """
@@ -855,12 +865,16 @@ def ex_dataframe(data):
     Method 1: directly from the RDD
     """
     rdd = sc.parallelize(data.values())
+
+    # RDD is just a collection of items where the items can have any Python type
+    # a DataFrame requires the items to be rows.
+
     df1 = rdd.map(lambda x: (x,)).toDF()
 
     # Breakpoint for inspection
     # breakpoint()
 
-    # Try: df.show()
+    # Try: df1.show()
 
     # What happened?
 
@@ -872,6 +886,8 @@ def ex_dataframe(data):
     """
     # don't need to do the same thing again -- RDDs are persistent and immutable!
     # rdd = sc.parallelize(data.values())
+
+    # In Python you can unwrap an entire list as a tuple by using *x.
     df2 = rdd.map(lambda x: (*x,)).toDF()
 
     # Breakpoint for inspection
@@ -891,8 +907,15 @@ def ex_dataframe(data):
     # For the columns, use our CHEM_NAMES list
     columns = ["chemical"] + CHEM_NAMES[1:]
 
+    # For the rows: any iterable -- i.e. any sequence -- of rows
     # For the rows: can use [] or a generator expression ()
     rows = ((name, *(counts[1:])) for name, counts in CHEM_DATA.items())
+
+    # Equiv:
+    # rows = [(name, *(counts[1:])) for name, counts in CHEM_DATA.items()]
+    # Also equiv:
+    # for name, counts in CHEM_DATA.items():
+    #     ...
 
     df3 = spark.createDataFrame(rows, columns)
 
@@ -906,22 +929,25 @@ def ex_dataframe(data):
 
     # Adding a new column:
     from pyspark.sql.functions import col
-    df3 = df3.withColumn("H + C", col("H") + col("C"))
+    df4 = df3.withColumn("H + C", col("H") + col("C"))
+    df4 = df3.withColumn("H + F", col("H") + col("F"))
 
-    df3 = df3.withColumn("H + F", col("H") + col("F"))
+    # This is the equiv of Pandas: df3["H + C"] = df3["H"] + df3["C"]
 
     breakpoint()
 
     # We could continue this example further (showing other Pandas operation equivalents).
 
 # Uncomment to run
-ex_dataframe(CHEM_DATA)
+# ex_dataframe(CHEM_DATA)
 
 """
 One more thing about DataFrames: revisiting the web interface
 and .explain():
 
 localhost:4040/
+
+getting the internal dataflow graph used:
 
 .explain()
 
@@ -932,6 +958,8 @@ localhost:4040/
 Another misc. DataFrame example:
 (skip for time, feel free to uncomment and play with it offline)
 """
+
+# Just to show how to create a data frame from a Python dict.
 
 # people = spark.createDataFrame([
 #     {"deptId": 1, "age": 40, "name": "Hyukjin Kwon", "gender": "M", "salary": 50},
@@ -968,77 +996,308 @@ What is the "magic" behind how Spark works?
 MapReduce is a simplified way to implement and think about
 distributed pipelines.
 
+MapReduce tries to take all distributed data pipelines you might want to
+compute, and reduce them down to the bear essence of the very minimal
+number of possible operations.
+
 In fact, a MapReduce pipeline is the simplest possible pipeline
 you can create, with just two stages!
+It's a dataflow graph with just three nodes:
 
-Exercise: Let's create our own MapReduce pipeline functions.
+    (input) ---> (map) ---> (reduce).
 
-PySpark functions:
+The kind of amazing thing is that essentially all operators on distributed
+pipelines can be reduced down to this simple form,
+called a MapReduce job.
+(Sometimes you might you need more than one MapReduce job to get some computations
+done.)
+
+(Simplified)
+
+Map stage:
+    - Take our input a scalable collection of items of type T, and apply
+      the same function f: T -> T to all inputs.
+
+      (T could be, integers, floats, chemicals, rows, anything)
+
+Reduce stage:
+(This differs a little by implementation)
+    - a way of combining two different intermediate outputs:
+      a function f: T x T -> T.
+
+Example:
+
+    My input dataset consists of populations by city.
+    I want the total population over all cities.
+
+    If I wanted to do this as MapReduce:
+
+    Map: do nothing, on each input row x, return x
+        lambda x: x
+
+        If input x was a row insetad of a integer, you could do
+        lambda x: x["population"]
+
+    Reduce: if I have two outputs x and y, return x + y
+        lambda x, y: x + y.
+
+    The MapReduce computation will repeatedly apply the reduce function
+    until there is no more reducing to do.
+
+This is only very slightly simplified. Two things to make it general:
+(We don't need to cover this for the purposes of this class)
+
+1) it's not all the same type T (input, intermediate, and output stages)
+(in fact, intermediate stage can be a list of zero or more outputs, not just one)
+
+2) both stages are partitioned by key.
+    + for map, this doesn't matter!
+    + for reduce, we actually get one output per key.
+
+Punchline:
+In fact we have been writing MapReduce pipelines all along!
+See our original CHEM_DATA example:
+- map stage: we apply a local computation to each input row: in our case,
+  we wanted to get the number of fluorines / num carbons for all rows which
+  have at least one carbon.
+- reduce stage: we aggregate all outputs across input rows: in our case,
+  we wanted to compute the avg across all inputs.
+
+All operators fit into this dichotomy:
+- Mapper-style operators are local, can be narrow, and can be lazy
+- Reducer-style operators are global, usually wide, and not lazy.
+
+We'll pick this up and finish up the lecture on Friday.
+
+********** Ended here for Nov 20 **********
+
+==================================================
+
+=== Nov 22 ===
+
+=== MapReduce Recap ===
+
+In MapReduce there are only two operators,
+Map and Reduce.
+
+PySpark equivalents:
 - .map
 https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.RDD.map.html
+- .reduce
+https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.RDD.reduce.html#pyspark.RDD.reduce
+
+Also equivalent to reduce (but needs an initial value)
 - .fold
 https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.RDD.fold.html
+
+As we mentioned last time, this is slightly simplified.
+We will do the fully general case today!
 """
+
+# Re-defining from earlier in the file
+# (and adding a couple more molecules)
+CHEM_DATA_2 = {
+    # H20
+    "water": [0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+    # N2
+    "nitrogen": [0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0],
+    # O2
+    "oxygen": [0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0],
+    # F2
+    "fluorine": [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0],
+    # CO2
+    "carbon dioxide": [0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0],
+    # CH4
+    "methane": [0, 4, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+    # C2 H6
+    "ethane": [0, 6, 0, 0, 0, 0, 2, 0, 0, 0, 0],
+    # C8 H F15 O2
+    "PFOA": [0, 1, 0, 0, 0, 0, 8, 0, 2, 15, 0],
+    # C H3 F
+    "Fluoromethane": [0, 3, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+    # C6 F6
+    "Hexafluorobenzene": [0, 0, 0, 0, 0, 0, 6, 0, 0, 6, 0],
+}
 
 def map(rdd, f):
     # TODO
     raise NotImplementedError
 
-def reduce(rdd, init, f):
+def reduce(rdd, f):
     # TODO
     raise NotImplementedError
 
 # If done correctly, the following should work
 
-def get_total_fluorines(data):
+def get_total_hydrogens(data):
     rdd = sc.parallelize(data.values())
 
-    res1 = map(rdd, lambda x: x[9])
-    res2 = reduce(res1, 0, lambda x, y: x + y)
+    res1 = map(rdd, lambda x: x[1])
+    res2 = reduce(res1, lambda x, y: x + y)
 
     print(f"Result: {res2}")
 
 # Uncomment to run
-# get_total_fluorines(CHEM_DATA)
+# get_total_hydrogens(CHEM_DATA_2)
+# (Count by hand to check)
 
 # Note:
-# We could also .collect() and then .parallelize the results after the
+# We could also .collect() and then .parallelize() the results after the
 # map stage if we wanted to simulate completing the results of the Map stage
-# and reshuffling prior to getting to the Reduce stage. Many MapReduce implementations
-# work this way.
+# and reshuffling prior to getting to the Reduce stage.
+# Many MapReduce implementations work this way.
 
 """
+=== Poll ===
+
+Describe how you might do the following task as a MapReduce computation.
+
+Same input dataset as in Nov 20 poll:
+US state, city name, population, avg temperature
+
+"Find the city with the largest temperature per unit population"
+
+https://forms.gle/Wm1ieauEdgJhiYhD7
+
 === Some history ===
 
 MapReduce was originally created by
 Jeffrey Dean and Sanjay Ghemawat at Google to simplify the large-scale data processing jobs that
 engineers were running on Google clusters.
 
-Blog article: "The Friendship That Made Google Huge"
-"Coding together at the same computer, Jeff Dean and Sanjay Ghemawat changed the course of the company—and the Internet."
-https://www.newyorker.com/magazine/2018/12/10/the-friendship-that-made-google-huge
-
 One of the paper readings from Wednesday asked you to read the original paper:
+
     MapReduce: Simplified Data Processing on Large Clusters
     https://dl.acm.org/doi/pdf/10.1145/1327452.1327492
 
 (BTW, this paper is very famous. Probably one of the most cited papers ever with
 23,309 citations (last I checked))
 
-Spark is heavily based on MapReduce under the hood.
+Blog article: "The Friendship That Made Google Huge"
 
-(end of MapReduce section)
+    "Coding together at the same computer, Jeff Dean and Sanjay Ghemawat changed the course of the company—and the Internet."
+    https://www.newyorker.com/magazine/2018/12/10/the-friendship-that-made-google-huge
+
+=== Fully general case ===
+
+We stated last time that MapReduce is slightly more general than the above.
+
+In the paper, Dean and Ghemawat propose the more general version of map and reduce,
+which we will cover now (see Sec 2.2):
+
+    map: (k1, v1) -> list((k2, v2))
+    reduce: (k2, list(v2)) -> list(v2)
+
+This is written very abstractly, what does it mean?
+
+Let's walk through each part:
+
+Keys:
+
+The first thing I want to point out is that all the data is given as
+    (key, value)
+
+pairs. (k1 and k2)
+
+Generally speaking, we use the first coordinate (key) for partitioning,
+and the second one to compute values.
+
+Ignore the keys for now, we'll come back to that.
+
+Map:
+    map: (k1, v1) -> list((k2, v2))
+
+- we might want to transform the data into a different type
+    v1 and v2
+- we might want to output zero or more than one output -- why?
+    list(k2, v2)
+
+Examples:
+(write pseudocode for the corresponding lambda function)
+
+- Compute a list of all Carbon-Fluorine bonds
+
+- Compute the total number of Carbon-Fluorine bonds
+
+- Compute the average of the ratio F / C for every molecule that has at least one Carbon
+  (our original example)
+
+In Spark:
+https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.RDD.flatMap.html
 """
 
+def map_general_ex(rdd, f):
+    # TODO
+    raise NotImplementedError
+
+# Uncomment to run
+# map_general_ex()
+
 """
+What about Reduce?
+
+    reduce: (k2, list(v2)) -> list(v2)
+
+We will work with a common special case:
+
+    reduce_by_key: (v2, v2) -> v2
+
+Reduce:
+- data has keys attached. Keys are used for partitioning
+- we aggregate the values *by key* instead of over the entire dataset.
+
+Examples:
+(write the corresponding Python lambda function)
+
+- To compute a total for each key?
+
+- To compute a count for each key?
+
+- To compute an average for each key?
+
+- To compute an average over the entire dataset?
+
+Important note:
+k1 and k2 are different! Why?
+
+In Spark:
+
+https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.RDD.reduceByKey.html
+"""
+
+def reduce_general(rdd, f):
+    # TODO
+    raise NotImplementedError
+
+"""
+Finally, let's use our generalized map and reduce functions to re-implement our original task,
+computing the average Fluorine-to-Carbon ratio in our chemical
+dataset, among molecules with at least one Carbon.
+"""
+
+def fluorine_carbon_ratio_map_reduce(data):
+    # TODO
+    raise NotImplementedError
+
+"""
+=== Additional exercises ===
+(Depending on extra time)
+
+Some additional MapReduce exercises in exercises.py.
+
 === End note: Latency/throughput tradeoff ===
 
 So, we know how to build distributed pipelines.
 
 The **only** change from a sequential pipline is that
 arrows are scalable collection types, instead of regular data types.
-Tasks are then interpreted as (either wide or narrow) operators over the scalable collections.
+Tasks are then interpreted as operators over the scalable collections.
 In other words, data parallelism comes for free!
+
+Scalable collections are a good way to think about parallel AND/OR distributed
+pipelines. Operators/tasks can be:
+- lazy or not lazy (how they are evaluated)
+- wide or narrow (how data is partitioned)
 
 But there is just one problem with what we have so far :)
 Spark is optimized for throughput.
@@ -1067,14 +1326,12 @@ These are not the same! Why not? Two extreme cases:
 
 2.
 
-A more abstract example of this is given below in the "Understanding latency (abstract)" section
-below.
+(A more abstract example of this is given below in the "Understanding latency (abstract)"
+section below.)
 
-=== Summary: disadvantages of Spark ===
+So, optimizing latency can look very different from optimizing throughput.
 
-Latency is about optimizing response time *per each individual input row.*
-
-But in a batch processing framework like Spark,
+In a batch processing framework like Spark,
 it waits until we ask, and then collects *all* results at once!
 So we always get the worst possible throughput, in fact we get the maximum latency
 on each individual item. We don't get some results sooner and some results later.
@@ -1082,9 +1339,7 @@ on each individual item. We don't get some results sooner and some results later
 Grouping together items (via lazy transformations) helps optimize the pipeline, but it
 *doesn't* necessarily help get results as soon as possible when they're needed.
 (Remember: laziness poll/example)
-That's why there is a tradeoff
-between throughput and latency.
-If we always wanted the best latency, we would always ask for the results right away.
+That's why there is a tradeoff between throughput and latency.
 
     "To achieve low latency, a system must be able to perform
     message processing without having a costly storage operation in
@@ -1098,14 +1353,20 @@ If we always wanted the best latency, we would always ask for the results right 
 Another term for the applications that require low latency requirements (typically, sub-second, sometimes
 milliseconds) is "real-time" applications or "streaming" applications.
 
+=== Summary: disadvantages of Spark ===
+
 So that's where we're going next,
 talking about applications where you might want your pipeline to respond in real time to data that
 is coming in.
 We'll use a different API in Spark called Spark Streaming.
 """
 
+# **** End ****
+
 """
-=== Understanding latency (abstract) ===
+=== Cut material ===
+
+===== Understanding latency (abstract) =====
 (review if you are interested in a more abstract view)
 
 Why isn't optimizing latency the same as optimizing for throughput?
