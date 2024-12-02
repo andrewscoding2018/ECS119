@@ -67,3 +67,34 @@ Plan:
 - Dealing with time
 
 Questions?
+
+## Dec 2
+
+Welcome back.
+
+Announcements:
+
+- This is the last week of lectures!
+
+- HW2 due in 1 week
+
+  + Please use the latest version of Part 3
+
+  + Come to office hours and submit your HW early for autograder feedback to make sure everything is working
+
+  + Dec 9, EOD is also the final deadline for HW1 makeup credit + all in-class polls!
+
+- Topic selection results:
+  https://piazza.com/class/m12ef423uj5p5/post/140
+
+  I will do an additional lecture on cloud computing platforms.
+  This will be either Wed or Fri.
+
+Plan:
+
+- Quick recap
+
+- Poll
+
+- Measuring time in a streaming system
+  (Spoiler: or any distributed system).
