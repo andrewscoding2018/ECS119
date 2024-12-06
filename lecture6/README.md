@@ -76,6 +76,8 @@ Announcements:
 
 - This is the last week of lectures!
 
+  + Final 1 week from Wed (Wed 11th, 6-8pm)
+
 - HW2 due in 1 week
 
   + Please use the latest version of Part 3
@@ -88,6 +90,7 @@ Announcements:
   https://piazza.com/class/m12ef423uj5p5/post/140
 
   I will do an additional lecture on cloud computing platforms.
+  (Amazon S3, EC2, Google Cloud)
   This will be either Wed or Fri.
 
 Plan:
@@ -98,3 +101,30 @@ Plan:
 
 - Measuring time in a streaming system
   (Spoiler: or any distributed system).
+
+Questions?
+
+## Dec 4
+
+Announcements:
+
+- HW2 + HW1 makeup + in-class polls due Monday
+
+  + I'll sync Canvas scores again ahead of Friday's class
+
+- OH Today, Thu, Fri
+
+  + I'll also do an office hour on Monday
+
+Plan:
+
+- Go over the final + final study list
+
+- Quick recap and poll
+
+- Continuing about different notions of time with a code example
+
+- How time is used in a streaming system and failure cases (time permitting)
+
+Friday's lecture will be a (very brief) intro to cloud services,
+Amazon/AWS S3, EC2, Lambda
